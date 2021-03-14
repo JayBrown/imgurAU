@@ -72,4 +72,4 @@ Note: since imgurAU doesn't come with a sharing extension, which would let you u
 
 ![sg01](https://raw.githubusercontent.com/JayBrown/imgurAU/main/img/01_main.png)
 
-![sg02](https://raw.githubusercontent.com/JayBrown/imgurAU/main/img/02_trash_.png)
+![sg02](https://raw.githubusercontent.com/JayBrown/imgurAU/main/img/02_trash.png)
