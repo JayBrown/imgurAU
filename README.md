@@ -65,6 +65,7 @@ Note: since imgurAU doesn't come with a sharing extension, which would let you u
 * `~/Pictures/imgurAU`
 
 ## To-do
+* find a way to keep Retina resolution with `exiftool`
 * find a way to execute a shell script from the macOS Share menu
 
 ## Screenshots
