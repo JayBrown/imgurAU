@@ -21,6 +21,9 @@ The **imgurAU** shell script uses **imguru** for anonymous uploads, while using 
 
 Note: the requisites `imguru` and `pbv` can be downloaded from the respective `./bin` directories in this repository; only the Universal 2 binary builds for macOS 11.1 and later have been tested.
 
+### Firefox
+* **[Open With](https://addons.mozilla.org/en-US/firefox/addon/open-with/)** – browser extension
+
 ### Applications (optional)
 * **[EventScripts](https://www.mousedown.net/software/EventScripts.html)** – download & install from the **[Mac App Store](https://apps.apple.com/gb/app/eventscripts/id525319418?mt=12)**
 
