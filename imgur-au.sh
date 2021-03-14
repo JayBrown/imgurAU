@@ -2,7 +2,7 @@
 # shellcheck shell=bash
 
 # imgur-au.sh
-# v0.9.11 beta
+# v0.9.12 beta
 #
 # imgurAU
 # imgur Anonymous Uploader
@@ -353,7 +353,7 @@ _upload () {
 	exifname=$(basename "$fuploadpath")
 	exifpath="$uldir/$exifname"
 	rm -f "$exifpath" 2>/dev/null
-	if exiftool -all= -filename="$exifpath" "$fuploadpath" &>/dev/null ; then
+	if exiftool -all= -tagsfromfile @ "-all:*resolution*" -filename="$exifpath" "$fuploadpath" &>/dev/null ; then
 		cleaned=true
 		fuploadpath="$exifpath"
 	else

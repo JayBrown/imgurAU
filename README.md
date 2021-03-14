@@ -39,7 +39,7 @@ Note: the requisites `imguru` and `pbv` can be downloaded from the respective `.
 * if necessary, set the executable bit with `chmod +x`
 * in EventScripts' preferences under "EventScripts" choose the application script `imgur-au.sh` and map it to the event "Screenshot Taken"
 
-Note: if you haven't installed **EventScripts**, or if the application is not running, you can still have `imgur-au.sh` detect a newly created screenshot: the underlying macOS application **Screen Shot** will not exit immediately, so if you hit your imgurAU keyboard shortcut (or tap your imgurAU Touch Bar button) quickly enough, it will still work. Alternatively, you can always create a user **Launch Agent** that watches your local screenshot folder for changes, and calls `imgur-au.sh`, if a new file has been created.
+Note: if you haven't installed **EventScripts**, or if the application is not running, you can still have `imgur-au.sh` detect a newly created screenshot: the underlying macOS application **Screen Shot** will not exit immediately, so if you hit your imgurAU keyboard shortcut (or tap your imgurAU Touch Bar button) quickly enough, it will still work. Alternatively, you can always create a user **Launch Agent** that watches your local screenshot folder for changes (e.g. with `watchman`, `fswatch` etc.) and calls `imgur-au.sh` when a new file has been created.
 
 ### File managers & other applications
 * if you use a file manager with direct shell script support like **[Nimble Commander](https://magnumbytes.com)**, you can just set up `imgur-au.sh` as a file management tool complete with keyboard shortcut
@@ -70,7 +70,6 @@ Note: since imgurAU doesn't come with a sharing extension, which would let you u
 * `~/Pictures/imgurAU`
 
 ## To-do
-* find a way to keep Retina resolution with `exiftool`
 * find a way to execute a shell script from the macOS Share menu
 
 ## Screenshots
