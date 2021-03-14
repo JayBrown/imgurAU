@@ -6,7 +6,7 @@
 
 Something similar happened with the macOS sharing extension **ImageShareUr**, which could be used for anonymous imgur uploads: it was abandoned a long time ago. There is a similar sharing extension for macOS, **imGuru**, but it only works if you have an imgur account, and the software's automatic log-in functionality tends to be very buggy.
 
-In terms of web browser extensions, there is one for anonymous imgur uploads ([b]imgur Uploader[/b]), but that one stopped working as well.
+In terms of web browser extensions, there is one for anonymous imgur uploads, namely **imgur Uploader** for Firefox, but that one stopped working as well.
 
 But for years now, there has been **imguru**, a command-line program for anonymous imgur uploads, and it is also officially endorsed by imgur. This still seems to be the best option to upload image files to imgur anonymously.
 
