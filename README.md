@@ -10,7 +10,9 @@ In terms of web browser extensions, there is one for anonymous imgur uploads, na
 
 But for years now, there has been **imguru**, a command-line program for anonymous imgur uploads, and it is also officially endorsed by imgur. This still seems to be the best option to upload image files to imgur anonymously.
 
-The **imgurAU** shell script uses **imguru** for anonymous uploads, while using imguru's OAuth key for direct cURL uploads of online web images. The script also uses extended macOS pasteboard functionality, available through the **pbv** program, to detect if an image has been copied into the macOS pasteboard. When using the software **EventScripts**, imgurAU can also be used to easily upload a new screenshot to imgur.
+The **imgurAU** shell script uses **imguru** for anonymous uploads, while using imguru's OAuth key for direct cURL uploads of online web images. It is recommended to get your own imgur OAuth key, add it to the imgurAU configuration file, and also build an individual copy of imguru that uses your own OAuth key.
+
+The imgurAU script also uses extended macOS pasteboard functionality, available through the **pbv** program, to detect if an image has been copied into the macOS pasteboard. When using the software **EventScripts**, imgurAU can also be used to easily upload a new screenshot to imgur.
 
 ## Requisites
 ### Command-line programs
@@ -28,8 +30,11 @@ Note: the requisites `imguru` and `pbv` can be downloaded from the respective `.
 * **[EventScripts](https://www.mousedown.net/software/EventScripts.html)** – download & install from the **[Mac App Store](https://apps.apple.com/gb/app/eventscripts/id525319418?mt=12)**
 
 ## Installation
-* option #1: clone this repository and symlink `imgur-au.sh`, `imguru` and `pbv` into one of your bin directories
-* option #2: download the repository and copy `imgur-au.sh`, `imguru` and `pbv` into one of your bin directories
+* get an **imgur OAuth key (client ID)** and add it to the configuration file `~/.config/imgurAU/imgur_client_id.txt`
+* use **Xcode** to build your own copy of `imguru` that uses your individual imgur OAuth key (client id)
+* option #1: clone this repository and symlink `imgur-au.sh`, `imguru` (if you're not using an individual build) and `pbv` into one of your bin directories
+* option #2: download the repository and copy `imgur-au.sh`, `imguru` (if you're not using an individual build) and `pbv` into one of your bin directories
+* recommended
 * if necessary, set the executable bits with `chmod +x`
 * install the `trash` program
 * install the `exiftool` program
@@ -71,6 +76,7 @@ Note: imgurAU doesn't come with a sharing extension, which would let you upload 
 * repository clone
 * all instances of `imgur-au.sh`
 * `~/Pictures/imgurAU`
+* `~/.config/imgurAU`
 
 ## To-do
 * find a way to execute a shell script from the macOS Share menu

@@ -2,7 +2,7 @@
 # shellcheck shell=bash
 
 # imgur-au.sh
-# v0.9.14 beta
+# v0.9.15 beta
 #
 # imgurAU
 # imgur Anonymous Uploader
@@ -32,7 +32,6 @@ export PATH=/usr/bin:/bin:/usr/sbin:/sbin:/usr/local/bin:/opt/local/bin:/opt/hom
 procid="local.lcars.imgurAU"
 uiprocess="imgurAU"
 account=$(id -u)
-client_id="51f229880e3ea84" # imguru ID: fallback for cURL (imguru does not support web upload)
 
 # logging
 logloc="/tmp/$procid.log"
@@ -119,6 +118,20 @@ tmpdir="/tmp/$procid"
 ! [[ -d "$tmpdir" ]] && mkdir "$tmpdir"
 uldir="$tmpdir/ul"
 ! [[ -d "$uldir" ]] && mkdir "$uldir"
+configdir="$HOME/.config/imgurAU"
+! [[ -d "$configdir" ]] && mkdir "$configdir"
+
+# imguru client ID: fallback for cURL (imguru does not support web upload)
+oauthloc="$configdir/imgur_client_id.txt"
+! [[ -f "$oauthloc" ]] && touch "$oauthloc"
+client_id=$(head -1 < "$oauthloc" 2>/dev/null)
+if ! [[ $client_id ]] ; then
+	client_id="51f229880e3ea84"
+	id_info="default"
+else
+	id_info="user"
+fi
+echo "Client ID: $client_id ($id_info)"
 
 _frontmost () {
 	frontmost=$(osascript 2>/dev/null << EOF
