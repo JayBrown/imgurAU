@@ -1,5 +1,5 @@
 # imgurAU
-**macOS one-stop shop solution for anonymous uploads to imgur with support for local files, pasteboard contents, screenshots & web images**
+**macOS one-stop shop solution for anonymous uploads to imgur with support for local files, files opened in image editors, pasteboard contents, new screenshots & web images**
 
 ## Impetus
 **Snappy** was once arguably the best screenshot utility for macOS, and it also included anonymous uploads to imgur. That application is now discontinued, which luckily is not a loss anymore, because Apple have stepped up, and the built-in macOS **Screen Shot** utility now has basically the same functionality as Snappy had, and then some. However, there is no upload functionality available.
