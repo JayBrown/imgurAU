@@ -51,9 +51,10 @@ Note: if you haven't installed **EventScripts**, or if the application is not ru
 
 ## Functionality
 * upload local file(s)
-* upload newly created screenshots (and optionally delete after upload)
+* auto-detect newly created screenshots & upload (option: delete after upload)
+* upload frontmost image of the frontmost application
 * upload image from pasteboard
-* upload web image
+* upload web image in the web browser
 * upload web images from a list of URLs
 * upload local files from a list of filepaths
 * select file(s) for upload (only if imgurAU was launched without arguments)

@@ -2,7 +2,7 @@
 # shellcheck shell=bash
 
 # imgur-au.sh
-# v0.9.12 beta
+# v0.9.14 beta
 #
 # imgurAU
 # imgur Anonymous Uploader
@@ -120,6 +120,38 @@ tmpdir="/tmp/$procid"
 uldir="$tmpdir/ul"
 ! [[ -d "$uldir" ]] && mkdir "$uldir"
 
+_frontmost () {
+	frontmost=$(osascript 2>/dev/null << EOF
+use framework "Foundation"
+use scripting additions
+try
+	tell application "System Events"
+		set theFrontProcess to first process whose frontmost is true
+		set theProcessName to name of theFrontProcess
+		tell theFrontProcess
+			tell front window
+				tell attribute "AXDocument"
+					set theFileURL to its value
+				end tell
+			end tell
+		end tell
+	end tell
+on error
+	set theFileURL to missing value
+end try
+if theFileURL ≠ missing value and theFileURL ≠ "file:///Irrelevant" and theFileURL ≠ "file:///Irrelevent" then
+	set thePOSIXPath to (current application's class "NSURL"'s URLWithString:theFileURL)'s |path|() as text
+	return thePOSIXPath
+else
+	return "none"
+end if
+EOF
+	)
+	if [[ $frontmost != "none" ]] ; then
+		echo -n "$frontmost"
+	fi
+}
+
 # check & arrange input first
 if [[ $* ]] ; then # input arguments
 	echo "Input (raw): $*"
@@ -162,23 +194,31 @@ if [[ $* ]] ; then # input arguments
 		fi
 	fi
 else # no input arguments
-	echo "No input: checking pasteboard..."
-	pasteboard=$(pbpaste 2>/dev/null) # check for URLs first
-	if [[ $pasteboard == "http://"* ]] || [[ $pasteboard == "https://"* ]] ; then # URL detected (check later)
-		echo "Detected URL: appending to input..."
+	echo "No input: checking frontmost document..."
+	frontdoc=$(_frontmost 2>/dev/null)
+	if [[ $frontdoc ]] ; then
+		echo -e "Detected Document: $frontdoc\nAppending to input..."
 		shift $#
-		set -- "$@" "$pasteboard"
-	else # no URLs
-		posixdate=$(date +%s)
-		pbfile="$tmpdir/$posixdate-pasteboard.tif"
-		rm -f "$pbfile" 2>/dev/null
-		if ! pbv public.tiff > "$pbfile" &>/dev/null ; then # no image file in pasteboard
-			rm -f "$pbfile" 2>/dev/null
-			echo "NOTE: no valid pasteboard content"
-		else # image file in pasteboard & exported
-			echo -e "Image data exported to temp TIFF: $posixdate-pasteboard.tif\nAppending to input..."
+		set -- "$@" "$frontdoc"
+	else
+		echo "No document: checking pasteboard..."
+		pasteboard=$(pbpaste 2>/dev/null) # check for URLs first
+		if [[ $pasteboard == "http://"* ]] || [[ $pasteboard == "https://"* ]] ; then # URL detected (check later)
+			echo "Detected URL: appending to input..."
 			shift $#
-			set -- "$@" "$pbfile"
+			set -- "$@" "$pasteboard"
+		else # no URLs
+			posixdate=$(date +%s)
+			pbfile="$tmpdir/$posixdate-pasteboard.tif"
+			rm -f "$pbfile" 2>/dev/null
+			if ! pbv public.tiff > "$pbfile" &>/dev/null ; then # no image file in pasteboard
+				rm -f "$pbfile" 2>/dev/null
+				echo "NOTE: no valid pasteboard content"
+			else # image file in pasteboard & exported
+				echo -e "Image data exported to temp TIFF: $posixdate-pasteboard.tif\nAppending to input..."
+				shift $#
+				set -- "$@" "$pbfile"
+			fi
 		fi
 	fi
 fi
@@ -221,6 +261,7 @@ tell application "System Events"
 end tell
 EOG
 		)
+		osascript -e 'tell application "qlmanage" to quit' &>/dev/null
 	fi
 	echo -n "$uploadchoice"
 }
