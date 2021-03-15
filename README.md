@@ -50,7 +50,7 @@ Note: if you haven't installed **EventScripts**, or if the application is not ru
 * in **Safari** `imgur-au.sh` might work as a macOS Service workflow (please create it yourself)
 
 ## Functionality
-* upload local file(s)
+* upload local image file(s)
 * auto-detect newly created screenshots & upload (option: delete after upload)
 * upload frontmost image of the frontmost application
 * upload image from pasteboard
@@ -63,7 +63,9 @@ Note: to prevent accidental uploads, imgurAU will always ask before uploading lo
 
 Note: after a successful upload, imgurAU will return the direct sharing URL of the image and copy it to the macOS pasteboard. If several images are uploaded at once, imgurAU will also create a dated plaintext file in `~/Pictures/imgurAU` containing the filenames and the imgur URLs.
 
-Note: since imgurAU doesn't come with a sharing extension, which would let you upload directly from an image editing software, you have to select your image in the editor and copy it (CMD-C) to your macOS pasteboard, and then run imgurAU without input; imgurAU will then extract the image from the pasteboard for upload.
+Note: imgurAU doesn't come with a sharing extension, which would let you upload directly from an image editing software via the "Share" menu, but you have two alternative solutions:
+* execute imgurAU without input while the relevant image file is opened as the frontmost document of the frontmost image viewer or editor
+* select the relevant image in the image viewer or editor and copy it (CMD-C) to your macOS pasteboard, then execute imgurAU without input
 
 ## Uninstall imgurAU
 * repository clone
