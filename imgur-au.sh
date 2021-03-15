@@ -2,7 +2,7 @@
 # shellcheck shell=bash
 
 # imgur-au.sh
-# v0.9.15 beta
+# v0.9.16 beta
 #
 # imgurAU
 # imgur Anonymous Uploader
@@ -121,12 +121,12 @@ uldir="$tmpdir/ul"
 configdir="$HOME/.config/imgurAU"
 ! [[ -d "$configdir" ]] && mkdir "$configdir"
 
-# imguru client ID: fallback for cURL (imguru does not support web upload)
+# imgur client ID: fallback for cURL (imguru does not support web upload)
 oauthloc="$configdir/imgur_client_id.txt"
 ! [[ -f "$oauthloc" ]] && touch "$oauthloc"
 client_id=$(head -1 < "$oauthloc" 2>/dev/null)
 if ! [[ $client_id ]] ; then
-	client_id="51f229880e3ea84"
+	client_id="51f229880e3ea84" 
 	id_info="default"
 else
 	id_info="user"
@@ -421,6 +421,8 @@ _upload () {
 		fi
 	fi
 	
+	# imgur_raw=$(curl -k -L -s --connect-timeout 10 -H "Authorization: Client-ID $client_id" -H "Expect: " -F "image=@$fuploadpath" "https://api.imgur.com/3/image.xml" 2>&1)
+	# imgur_url=$(echo "$imgur_raw" | tail -n +2 | awk -F"<link>" '{print $NF}' | awk -F"</link>" '{print $1}' 2>/dev/null)
 	imgur_url=$(imguru "$fuploadpath" 2>/dev/null | grep -v "^$")
 	if [[ $imgur_url == "https://i.imgur.com/"* ]] ; then
 		echo -n "$imgur_url"
@@ -530,18 +532,16 @@ for input in "$@"
 do
 	! [[ $input ]] && continue
 	
-	# check extension first
-	if ! echo "$input" | grep -q -i -e "\.png$" -e "\.jpg$" -e "\.jpeg" -e "\.tif$" -e "\.tiff$" -e "\.gif$" -e "\.apng" -e "\.webm" -e "\.mp4" -e "\.m4v" -e "\.avi" &>/dev/null ; then # not a proper file type
-		inputname=$(basename "$input")
-		echo "ERROR: wrong file format"
-		_beep &
-		_notify "❌ Wrong file format!" "Not supported by imgur: $inputname"
-		continue
-	fi
-
+	inputname=$(basename "$input")
+	
 	# check for proper input
 	if [[ $input == "/"* ]] ; then
-		inputname=$(basename "$input")
+		if ! echo "$inputname" | grep -q -i -e "\.png$" -e "\.jpg$" -e "\.jpeg" -e "\.tif$" -e "\.tiff$" -e "\.gif$" -e "\.apng" -e "\.webm" -e "\.mp4" -e "\.m4v" -e "\.avi" &>/dev/null ; then # not a proper file type
+			echo "ERROR: wrong file format"
+			_beep &
+			_notify "❌ Wrong file format!" "Not supported by imgur: $inputname"
+			continue
+		fi
 		if ! [[ -f "$input" ]] ; then
 			echo "ERROR: file missing ($inputname)"
 			_beep &
@@ -558,12 +558,17 @@ do
 			allurls="$allurls\n$input"
 		fi
 	else
+		if ! echo "$inputname" | grep -q -i -e "\.png$" -e "\.jpg$" -e "\.jpeg" -e "\.tif$" -e "\.tiff$" -e "\.gif$" -e "\.apng" -e "\.webm" -e "\.mp4" -e "\.m4v" -e "\.avi" &>/dev/null ; then # not a proper file type
+			echo "ERROR: wrong file format"
+			_beep &
+			_notify "❌ Wrong file format!" "Not supported by imgur: $inputname"
+			continue
+		fi
 		inputpath="$PWD/$input"
 		if [[ -f "$inputpath" ]] ; then
 			allfiles="$allfiles\n$inputpath"
 		else
 			echo "ERROR: file missing or false input ($inputname)"
-			inputname=$(basename "$inputpath")
 			_beep &
 			_notify "❓ File missing or false input" "$inputname"
 		fi
@@ -588,11 +593,21 @@ uploadinfo=""
 webmulti=false
 if $webimg ; then
 	[[ $(echo "$allurls" | wc -l) -gt 1 ]] && webmulti=true
-	while read -r url
+	while read -r url_raw
 	do
-		echo "URL: $url" ### cleanup URL? needs testing
-		urlname=$(basename "$url")
-		# imguru doesn't support URL input: upload to imgur directly with cURL and imguru's OAuth key
+		echo "URL (raw): $url_raw"
+		urlparent=$(dirname "$url_raw")
+		urlname=$(basename "$url_raw")
+		urlname=$(echo "$urlname" | sed -e 's/\.png\?.*$/\.png/' -e 's/\.jpg\?.*$/\.jpg/' -e 's/\.jpeg\?.*$/\.jpeg/' -e 's/\.apng\?.*$/\.apng/' -e 's/\.gif\?.*$/\.gif/' -e 's/\.tif\?.*$/\.tif/' -e 's/\.tiff\?.*$/\.tiff/' -e 's/\.webm\?.*$/\.webm/' -e 's/\.m4v\?.*$/\.m4v/' -e 's/\.mp4\?.*$/\.mp4/' -e 's/\.avi\?.*$/\.avi/')
+		url="$urlparent/$urlname"
+		echo "URL: $url"
+		if ! echo "$urlname" | grep -q -i -e "\.png$" -e "\.jpg$" -e "\.jpeg" -e "\.tif$" -e "\.tiff$" -e "\.gif$" -e "\.apng" -e "\.webm" -e "\.mp4" -e "\.m4v" -e "\.avi" &>/dev/null ; then # not a proper file type
+			echo "ERROR: wrong file format"
+			_beep &
+			_notify "❌ Wrong file format!" "Not supported by imgur: $inputname"
+			continue
+		fi
+		# imguru doesn't support URL input: upload to imgur directly with cURL and OAuth key
 		echo "Uploading to imgur directly..."
 		imgur_raw=$(curl -k -L -s --connect-timeout 10 -H "Authorization: Client-ID $client_id" -H "Expect: " -F "image=$url" "https://api.imgur.com/3/image.xml" 2>/dev/null)
 		shareurl=$(echo "$imgur_raw" | tail -n +2 | awk -F"<link>" '{print $NF}' | awk -F"</link>" '{print $1}' 2>/dev/null)

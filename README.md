@@ -26,20 +26,21 @@ Note: the requisites `imguru` and `pbv` can be downloaded from the respective `.
 ### Firefox
 * **[Open With](https://addons.mozilla.org/en-US/firefox/addon/open-with/)** – browser extension
 
-### Applications (optional)
+### Applications
 * **[EventScripts](https://www.mousedown.net/software/EventScripts.html)** – download & install from the **[Mac App Store](https://apps.apple.com/gb/app/eventscripts/id525319418?mt=12)**
 
 ## Installation
-* get an **imgur OAuth key (client ID)** and add it to the configuration file `~/.config/imgurAU/imgur_client_id.txt`
-* use **Xcode** to build your own copy of `imguru` that uses your individual imgur OAuth key (client id)
 * option #1: clone this repository and symlink `imgur-au.sh`, `imguru` (if you're not using an individual build) and `pbv` into one of your bin directories
 * option #2: download the repository and copy `imgur-au.sh`, `imguru` (if you're not using an individual build) and `pbv` into one of your bin directories
-* recommended
 * if necessary, set the executable bits with `chmod +x`
 * install the `trash` program
 * install the `exiftool` program
 
-### EventScripts setup
+### imgur client ID (optional)
+* get an **imgur OAuth key (client ID)** and add it to the configuration file `~/.config/imgurAU/imgur_client_id.txt`
+* use **Xcode** to build your own copy of `imguru` that uses your individual imgur OAuth key (client id)
+
+### EventScripts setup (optional)
 * copy `imgur-au.sh` into `~/Library/Application Scripts/net.mousedown.EventScripts`
 * if necessary, set the executable bit with `chmod +x`
 * in EventScripts' preferences under "EventScripts" choose the application script `imgur-au.sh` and map it to the event "Screenshot Taken"
