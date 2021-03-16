@@ -2,7 +2,7 @@
 # shellcheck shell=bash
 
 # imgur-au.sh
-# v0.9.19 beta
+# v0.9.20 beta
 #
 # imgurAU
 # imgur Anonymous Uploader
@@ -555,8 +555,8 @@ do
 		fi
 		if ! echo "$inputname" | grep -q -i -e "\.png$" -e "\.jpg$" -e "\.jpeg" -e "\.tif$" -e "\.tiff$" -e "\.gif$" -e "\.apng" -e "\.webm" -e "\.mp4" -e "\.m4v" -e "\.avi" &>/dev/null ; then # not a proper file type
 			posixdate=$(date +%s)
-			cfileicon="$tmpdir/$posixdate-$inputname-icon512.png"
-			if file-icon "$input" --size 512 > "$cfileicon" &>/dev/null ; then
+			cfileicon="$tmpdir/$posixdate-$inputname-icon256.png"
+			if file-icon "$input" --size 256 > "$cfileicon" &>/dev/null ; then
 				allfiles="$allfiles\n$cfileicon"
 			else
 				echo "ERROR: wrong file format"
@@ -586,8 +586,8 @@ do
 		fi
 		if ! echo "$inputname" | grep -q -i -e "\.png$" -e "\.jpg$" -e "\.jpeg" -e "\.tif$" -e "\.tiff$" -e "\.gif$" -e "\.apng" -e "\.webm" -e "\.mp4" -e "\.m4v" -e "\.avi" &>/dev/null ; then # not a proper file type
 			posixdate=$(date +%s)
-			cfileicon="$tmpdir/$posixdate-$inputname-icon512.png"
-			if file-icon "$input" --size 512 > "$cfileicon" &>/dev/null ; then
+			cfileicon="$tmpdir/$posixdate-$inputname-icon256.png"
+			if file-icon "$input" --size 256 > "$cfileicon" &>/dev/null ; then
 				allfiles="$allfiles\n$cfileicon"
 			else
 				echo "ERROR: wrong file format"
@@ -719,7 +719,7 @@ if $localimg ; then
 				uploadname="$shortname.jpg"
 				uploadpath="$tmpdir/$uploadname"
 			fi
-		elif [[ $uploadname == *"-icon512.png" ]] ; then
+		elif [[ $uploadname == *"-icon256.png" ]] ; then
 			pasted=true
 		fi
 		# upload

@@ -57,7 +57,7 @@ Note: if you haven't installed **EventScripts**, or if the application is not ru
 ## Functionality
 * upload local image file(s)
 * auto-detect newly created screenshots & upload (option: delete after upload)
-* convert the icon of any file or folder to PNG (512 ppi) and upload to imgur
+* convert the icon of any file or folder to PNG (256 ppi) and upload to imgur
 * upload frontmost image of the frontmost application
 * upload image from pasteboard
 * upload web image in the web browser
