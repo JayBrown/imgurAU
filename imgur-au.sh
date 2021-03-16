@@ -2,7 +2,7 @@
 # shellcheck shell=bash
 
 # imgur-au.sh
-# v0.9.23 beta
+# v0.9.24 beta
 #
 # imgurAU
 # imgur Anonymous Uploader
@@ -71,7 +71,7 @@ if ! [[ $sg_loc ]] ; then
 else
 	sg_loc=$(echo "$sg_loc" | sed 's-/*$--')
 	echo "Screenshot location: $sg_loc"
-	if $snapshots ; then
+	if $snapshots && ! [[ $* ]] ; then
 		shift $#
 		set -- "$@" "internal-snapshot"
 	fi
