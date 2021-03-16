@@ -2,7 +2,7 @@
 # shellcheck shell=bash
 
 # imgur-au.sh
-# v0.9.25 beta
+# v0.9.26 beta
 #
 # imgurAU
 # imgur Anonymous Uploader
@@ -44,21 +44,21 @@ exec > >(tee -a "$logloc") 2>&1
 # check for macOS app Snap Shot
 snapshots=false
 if pgrep -x "screencaptureui" &>/dev/null ; then
-	echo "macOS Snap Shot is running"
+	echo "macOS Snap Shot is running" >&2
 	snapshots=true
 	# check for EventScripts app
 	if pgrep -x "EventScripts" &>/dev/null ; then
-		echo "EventScripts is running: overriding Snap Shot"
+		echo "EventScripts is running: overriding Snap Shot" >&2
 		snapshots=false
 	fi
 fi
 
-# check for BBCode formatting arguments
+# check for BBCode formatting
 bbcode=false
 if [[ $1 =~ ^(-b|--bbcode)$ ]] ; then
 	shift
 	bbcode=true
-	echo "BBCode formatting enabled"
+	echo "BBCode mode enabled" >&2
 fi
 
 # read screenshot location
@@ -66,11 +66,11 @@ sg_def=true
 sg_loc=$(/usr/libexec/PlistBuddy -c "Print:location" "$HOME/Library/Preferences/com.apple.screencapture.plist" 2>/dev/null)
 ! [[ $sg_loc ]] && sg_loc=$(defaults read "com.apple.screencapture" location 2>/dev/null)
 if ! [[ $sg_loc ]] ; then
-	echo "WARNING: no screenshot directory defined"
+	echo "WARNING: no screenshot directory defined" >&2
 	sg_def=false
 else
 	sg_loc=$(echo "$sg_loc" | sed 's-/*$--')
-	echo "Screenshot location: $sg_loc"
+	echo "Screenshot location: $sg_loc" >&2
 	if $snapshots && ! [[ $* ]] ; then
 		shift $#
 		set -- "$@" "internal-snapshot"
@@ -109,7 +109,7 @@ reqerror=false
 while read -r req
 do
 	if ! command -v "$req" &>/dev/null ; then
-		echo "ERROR: $req not installed"
+		echo "ERROR: $req not installed" >&2
 		_notify "❌ Error: requisites!" "$req is not installed"
 	fi
 done < <(echo "$reqs")
@@ -139,7 +139,7 @@ if ! [[ $client_id ]] ; then
 else
 	id_info="user"
 fi
-echo "Client ID: $client_id ($id_info)"
+echo "Client ID: $client_id ($id_info)" >&2
 
 _frontmost () {
 	frontmost=$(osascript 2>/dev/null << EOF
@@ -171,37 +171,37 @@ EOF
 	if [[ $frontmost != "none" ]] ; then
 		frontname=$(basename "$frontmost")
 		if echo "$frontname" | grep -q -i -e "\.png$" -e "\.jpg$" -e "\.jpeg" -e "\.tif$" -e "\.tiff$" -e "\.gif$" -e "\.apng" -e "\.webm" -e "\.mp4" -e "\.m4v" -e "\.avi" &>/dev/null ; then
-			echo -n "$frontmost"
+			echo -n "$frontmost" #
 		fi
 	fi
 }
 
 # check & arrange input first
 if [[ $* ]] ; then # input arguments
-	echo "Input (raw): $*"
+	echo "Input (raw): $*" >&2
 	if [[ $1 == "internal-snapshot" ]] ; then
 		img_newest=$(find "$sg_loc" -mindepth 1 -maxdepth 1 -type f \( -name '*.jpg' -o -name '*.png' -o -name '*.jpeg' -o -name '*.tif' -o -name '*.tiff' -o -name '*.apng' -o -name '*.gif' \) -print0 2>/dev/null | xargs -r -0 ls -1 -t | head -1 | grep -v "^$")
 		if [[ $img_newest ]] ; then # screenshot file found
 			shift $#
 			set -- "$@" "$img_newest"
 		else # no screenshot file found
-			echo "ERROR: screenshot directory empty - asking user..."
+			echo "ERROR: screenshot directory empty - asking user..." >&2
 			shift $#
 			set -- "$@" "internal-select screenshots"
 		fi
 	else
 		if echo "$*" | grep -q "net\.mousedown\.EventScripts" &>/dev/null ; then # EventScripts event
-			echo "Detected EventScripts input"
+			echo "Detected EventScripts input" >&2
 			if $sg_def ; then # screenshot folder is known
 				checkname=$(echo "$*" | sed 's/^Screenshot taken *//' | awk -F" /" '{print $1}')
 				if ! [[ $checkname ]] ; then # parse error (filename)
-					echo "ERROR: couldn't parse for screenshot filename'"
+					echo "ERROR: couldn't parse for screenshot filename'" >&2
 					shift $#
 					set -- "$@" "internal-select screenshots"
 				else # name OK
-					echo "Screenshot filename: $checkname"
+					echo "Screenshot filename: $checkname" >&2
 					if ! [[ -f "$sg_loc/$checkname" ]] ; then # false alarm by EventScripts
-						echo "ERROR: screenshot removed - exiting..."
+						echo "ERROR: screenshot removed - exiting..." >&2
 						exit
 					else # new screenshot created
 						shift $#
@@ -209,26 +209,26 @@ if [[ $* ]] ; then # input arguments
 					fi
 				fi
 			else # screenshot folder is unknown
-				echo "ERROR: no screenshot directory specified - asking user..."
+				echo "ERROR: no screenshot directory specified - asking user..." >&2
 				shift $#
 				set -- "$@" "internal-select"
 			fi
 		else # normal input
-			echo "Generic input: filepath(s) or URL"
+			echo "Generic input: filepath(s) or URL" >&2
 		fi
 	fi
 else # no input arguments
-	echo "No input: checking frontmost document..."
+	echo "No input: checking frontmost document..." >&2
 	frontdoc=$(_frontmost 2>/dev/null)
 	if [[ $frontdoc ]] ; then
-		echo -e "Detected Document: $frontdoc\nAppending to input..."
+		echo -e "Detected Document: $frontdoc\nAppending to input..." >&2
 		shift $#
 		set -- "$@" "$frontdoc"
 	else
-		echo "No document: checking pasteboard..."
+		echo "No document: checking pasteboard..." >&2
 		pasteboard=$(pbpaste 2>/dev/null) # check for URLs first
 		if [[ $pasteboard == "http://"* ]] || [[ $pasteboard == "https://"* ]] ; then # URL detected (check later)
-			echo "Detected URL: appending to input..."
+			echo "Detected URL: appending to input..." >&2
 			shift $#
 			set -- "$@" "$pasteboard"
 		else # no URLs
@@ -237,9 +237,9 @@ else # no input arguments
 			rm -f "$pbfile" 2>/dev/null
 			if ! pbv public.tiff > "$pbfile" &>/dev/null ; then # no image file in pasteboard
 				rm -f "$pbfile" 2>/dev/null
-				echo "NOTE: no valid pasteboard content"
+				echo "NOTE: no valid pasteboard content" >&2
 			else # image file in pasteboard & exported
-				echo -e "Image data exported to temp TIFF: $posixdate-pasteboard.tif\nAppending to input..."
+				echo -e "Image data exported to temp TIFF: $posixdate-pasteboard.tif\nAppending to input..." >&2
 				shift $#
 				set -- "$@" "$pbfile"
 			fi
@@ -286,7 +286,7 @@ end tell
 EOG
 		)
 	fi
-	echo -n "$uploadchoice"
+	echo -n "$uploadchoice" #
 }
 
 _ask-exif () {
@@ -305,7 +305,7 @@ tell application "System Events"
 end tell
 EOX
 	)
-	echo -n "$exifchoice"
+	echo -n "$exifchoice" #
 }
 
 # open file dialog with macOS previews: ask user to select for upload
@@ -344,7 +344,7 @@ theUploadImage
 EOS
 		)
 	fi
-	echo -n "$imgpathchoice"
+	echo -n "$imgpathchoice" #
 }
 
 # file checks & conversions (size/format)
@@ -352,16 +352,16 @@ _check-file () {
 	checkpath="$1"
 	checkname=$(basename "$checkpath")
 	fsize=$(stat -f%z "$checkpath" 2>/dev/null) # general file size check
-	echo "File size: $fsize" >&2
+	# echo "File size: $fsize" >&2
 	if ! [[ $fsize ]] || [[ $fsize -eq 0 ]] ; then
 		_beep &
 		_notify "⚠️ Error: no file content!" "$checkname"
-		echo "ERROR: no file content" >&2
-		echo -n "error"
+		# echo "ERROR: no file content" >&2
+		echo -n "error" #
 		return
 	fi
 	suffix="${checkname##*.}"
-	echo "Extension: $suffix" >&2
+	# echo "Extension: $suffix" >&2
 	abort=false
 	# check file sizes relative to formats for imgur support
 	if [[ $suffix =~ ^(gif|GIF)$ ]] ; then
@@ -372,23 +372,23 @@ _check-file () {
 	if $abort ; then
 		_beep &
 		_notify "⚠️ Error: file too large!" "$checkname"
-		echo "ERROR: file too large" >&2
-		echo -n "error"
+		# echo "ERROR: file too large" >&2
+		echo -n "error" #
 		return
 	fi
 	# potential format conversion (into temp dir)
 	if [[ $suffix =~ ^(png|PNG)$ ]] && [[ $fsize -gt "$pngmax" ]] ; then
-		echo "Converting PNG to JPEG..." >&2
+		# echo "Converting PNG to JPEG..." >&2
 		shortcheckname="${checkname%.*}"
 		tempcheckname="$posixdate-$shortcheckname.jpg"
 		if sips -s format jpeg "$checkpath" --out "$tmpdir/$tempcheckname" &>/dev/null ; then
-			echo -n "$tmpdir/$tempcheckname"
+			echo -n "$tmpdir/$tempcheckname" #
 		else
 			_beep &
 			_notify "⚠️ Error: conversion failed!" "$checkname"
 			rm -f "$tmpdir/$tempcheckname" 2>/dev/null
-			echo "ERROR: conversion failed" >&2
-			echo -n "error"
+			# echo "ERROR: conversion failed" >&2
+			echo -n "error" #
 		fi
 	fi
 }
@@ -406,8 +406,8 @@ _upload () {
 	if $uask ; then
 		uchoice=$(_ask-upload "$fuploadpath" 2>/dev/null)
 		if ! [[ $uchoice ]] || [[ $uchoice == "false" ]] ; then
-			echo "User canceled" >&2
-			echo "canceled"
+			# echo "User canceled" >&2
+			echo "canceled" #
 			return
 		fi
 	fi
@@ -428,10 +428,10 @@ _upload () {
 	else
 		xchoice=$(_ask-exif "$uploadpath" 2>/dev/null)
 		if ! [[ $xchoice ]] || [[ $xchoice == "false" ]] ; then
-			echo "User canceled" >&2
+			# echo "User canceled" >&2
 			$converted && rm -f "$imgcheck" 2>/dev/null
 			rm -f "$exifpath" 2>/dev/null
-			echo "canceled"
+			echo "canceled" #
 			return
 		fi
 	fi
@@ -445,7 +445,7 @@ _upload () {
 		if [[ $imgur_data ]] ; then
 			imgur_url=$(echo "$imgur_data" | jq -r '.data.link')
 			if [[ $imgur_url == "https://i.imgur.com/"* ]] ; then
-				echo -n "$imgur_url"
+				echo -n "$imgur_url" #
 			fi
 		fi
 	fi
@@ -472,22 +472,22 @@ EOD
 	)
 	if [[ $delete == "Delete" ]] ; then # try to move to trash first
 		if ! trash "$trashfile" &>/dev/null ; then # remove completely on error
-			echo "ERROR: couldn't move screenshot to Trash - removing instead"
+			echo "ERROR: couldn't move screenshot to Trash - removing instead" >&2
 			rm -f "$trashfile" 2>/dev/null
 		else
-			echo "Screenshot moved to the Trash"
+			echo "Screenshot moved to the Trash" >&2
 		fi
 	else
-		echo "User chose to keep the screenshot"
+		echo "User chose to keep the screenshot" >&2
 	fi
 }
 
 # auxiliary routine without input arguments
 if ! [[ $* ]] ; then
-	echo "No final input: asking user..."
+	echo "No final input: asking user..." >&2
 	uploadpaths=$(_select-image multi "$HOME/Pictures" 2>/dev/null)
 	if ! [[ $uploadpaths ]] ; then
-		echo "User canceled."
+		echo "User canceled." >&2
 		exit
 	fi
 	if [[ $(echo "$uploadpaths" | wc -l) -gt 1 ]] ; then # multiple files selected: upload right here
@@ -495,27 +495,27 @@ if ! [[ $* ]] ; then
 		errors=false
 		while read -r uploadpath
 		do
-			echo "Accessing: $uploadpath"
+			echo "Accessing: $uploadpath" >&2
 			uploadname=$(basename "$uploadpath")
 			shareurl=$(_upload "$uploadpath" 2>/dev/null)
 			if [[ $shareurl == "https://i.imgur.com/"* ]] ; then
-				echo "Success: $shareurl ($uploadname)"
+				echo "Success: $shareurl ($uploadname)" >&2
 				if ! $bbcode ; then
 					uploadinfo="$uploadinfo\n$shareurl|$uploadname"
 				else
-					uploadinfo="$uploadinfo\n[img]$shareurl[/img]|$uploadname"
+					uploadinfo="$uploadinfo\n"'[img]'"$shareurl"'[/img]'"|$uploadname"
 				fi
 				_notify "✅ Upload successful" "$shareurl ($uploadname)"
 			else
 				if ! [[ $shareurl ]] ; then
-					echo "ERROR: upload: $uploadname"
+					echo "ERROR: upload: $uploadname" >&2
 					uploadinfo="$uploadinfo\nERROR|$uploadname"
 					_notify "❌ Upload failed!" "$uploadname"
 					errors=true
 				elif [[ $shareurl == "canceled" ]] ; then
-					echo "User canceled"
+					echo "User canceled" >&2
 				else
-					echo "Unknown condition: $shareurl"
+					echo "Unknown condition: $shareurl" >&2
 				fi
 			fi
 			osascript -e 'tell application "qlmanage" to quit' &>/dev/null
@@ -525,7 +525,7 @@ if ! [[ $* ]] ; then
 		else
 			_success &
 		fi
-		echo "Writing results to info file: $links_loc"
+		echo "Writing results to info file: $links_loc" >&2
 		echo -e "$uploadinfo" | grep -v "^$" > "$links_loc"
 		sleep .5
 		open "$links_loc"
@@ -543,7 +543,7 @@ if [[ $1 == "internal-select" ]] ; then
 		selection=$(_select-image "$HOME/Pictures" 2>/dev/null)
 	fi
 	if ! [[ $selection ]] ; then
-		echo "User canceled"
+		echo "User canceled" >&2
 		exit
 	fi
 	shift $#
@@ -551,7 +551,7 @@ if [[ $1 == "internal-select" ]] ; then
 fi
 
 # main routines with input or re-organized input
-echo "Final input (raw): $*"
+echo "Final input (raw): $*" >&2
 
 errors=false
 allfiles=""
@@ -565,7 +565,7 @@ do
 	# check for proper input
 	if [[ $input == "/"* ]] ; then
 		if ! [[ -e "$input" ]] ; then
-			echo "ERROR: file missing ($inputname)"
+			echo "ERROR: file missing ($inputname)" >&2
 			_beep &
 			_notify "❓ File missing" "$inputname"
 			continue
@@ -576,7 +576,7 @@ do
 			if file-icon "$input" --size 256 > "$cfileicon" &>/dev/null ; then
 				allfiles="$allfiles\n$cfileicon"
 			else
-				echo "ERROR: wrong file format"
+				echo "ERROR: wrong file format" >&2
 				_beep &
 				_notify "❌ Wrong file format!" "Not supported by imgur: $inputname"
 				rm -f "$cfileicon" 2>/dev/null
@@ -587,7 +587,7 @@ do
 		fi
 	elif [[ $input == "http://"* ]] || [[ $input == "https://"* ]] ; then
 		if [[ $input == "https://i.imgur.com/"* ]] || [[ $input == "http://i.imgur.com/"* ]] ; then
-			echo "INFO: image already on imugr"
+			echo "INFO: image already on imugr" >&2
 			_beep &
 			_notify "ℹ️ Image already on imgur" "$input"
 		else
@@ -596,7 +596,7 @@ do
 	else
 		inputpath="$PWD/$input"
 		if ! [[ -e "$inputpath" ]] ; then
-			echo "ERROR: file missing or false input ($inputname)"
+			echo "ERROR: file missing or false input ($inputname)" >&2
 			_beep &
 			_notify "❓ File missing or false input" "$inputname"
 			continue
@@ -607,7 +607,7 @@ do
 			if file-icon "$input" --size 256 > "$cfileicon" &>/dev/null ; then
 				allfiles="$allfiles\n$cfileicon"
 			else
-				echo "ERROR: wrong file format"
+				echo "ERROR: wrong file format" >&2
 				_beep &
 				_notify "❌ Wrong file format!" "Not supported by imgur: $inputname"
 				rm -f "$cfileicon" 2>/dev/null
@@ -638,32 +638,32 @@ if $webimg ; then
 	[[ $(echo "$allurls" | wc -l) -gt 1 ]] && webmulti=true
 	while read -r url_raw
 	do
-		echo "URL (raw): $url_raw"
+		echo "URL (raw): $url_raw" >&2
 		urlparent=$(dirname "$url_raw")
 		urlname=$(basename "$url_raw")
 		urlname=$(echo "$urlname" | sed -e 's/\.png\?.*$/\.png/' -e 's/\.jpg\?.*$/\.jpg/' -e 's/\.jpeg\?.*$/\.jpeg/' -e 's/\.apng\?.*$/\.apng/' -e 's/\.gif\?.*$/\.gif/' -e 's/\.tif\?.*$/\.tif/' -e 's/\.tiff\?.*$/\.tiff/' -e 's/\.webm\?.*$/\.webm/' -e 's/\.m4v\?.*$/\.m4v/' -e 's/\.mp4\?.*$/\.mp4/' -e 's/\.avi\?.*$/\.avi/')
 		url="$urlparent/$urlname"
-		echo "URL: $url"
+		echo "URL: $url" >&2
 		if ! echo "$urlname" | grep -q -i -e "\.png$" -e "\.jpg$" -e "\.jpeg" -e "\.tif$" -e "\.tiff$" -e "\.gif$" -e "\.apng" -e "\.webm" -e "\.mp4" -e "\.m4v" -e "\.avi" &>/dev/null ; then # not a proper file type
-			echo "ERROR: wrong file format"
+			echo "ERROR: wrong file format" >&2
 			_beep &
 			_notify "❌ Wrong file format!" "Not supported by imgur: $inputname"
 			continue
 		fi
 		# upload to imgur directly with cURL (only client ID needed for anonymous upload)
-		echo "Uploading to imgur directly..."
+		echo "Uploading to imgur directly..." >&2
 		imgur_data=$(curl -k -L -s --connect-timeout 10 --request POST "https://api.imgur.com/3/image" -H "Authorization: Client-ID $client_id" -H "Expect: " -F "image=$url" 2>/dev/null)
 		shareurl=$(echo "$imgur_data" | jq -r '.data.link')
 		if [[ $shareurl != "https://i.imgur.com/"* ]] ; then # cURL error: download first, then again with cURL
-			echo "ERROR: direct upload with cURL"
+			echo "ERROR: direct upload with cURL" >&2
 			uploadname="$posixdate-$urlname"
 			uploadpath="$tmpdir/$uploadname"
 			rm -f "$uploadpath" 2>/dev/null
-			echo "Caching at: $uploadpath"
+			echo "Caching at: $uploadpath" >&2
 			# download first
 			if ! curl -o "$uploadpath" -k -L -s --connect-timeout 10 "$url" &>/dev/null ; then
 				errors=true
-				echo "ERROR: cURL exited with error"
+				echo "ERROR: cURL exited with error" >&2
 				_beep &
 				_notify "⚠️ cURL: cache error!" "$urlname"
 				rm -f "$uploadpath" 2>/dev/null
@@ -673,24 +673,22 @@ if $webimg ; then
 			else # upload from cache
 				shareurl=$(_upload "$uploadpath" 2>/dev/null)
 				if [[ $shareurl == "https://i.imgur.com/"* ]] ; then
-					if ! $bbcode ; then
-						echo -n "$shareurl" | pbcopy
-					else
-						echo -n "[img]$shareurl[/img]" | pbcopy
-					fi
+					$bbcode && shareurl='[img]'"$shareurl"'[/img]'
+					echo -n "$shareurl" | pbcopy
 					_success &
 					if $webmulti || $allmulti ; then
 						_notify "✅ Uploaded" "$shareurl"
 						if ! $bbcode ; then
 							uploadinfo="$uploadinfo\n$shareurl|$urlname"
 						else
-							uploadinfo="$uploadinfo\n[img]$shareurl[/img]|$urlname"
+							uploadinfo="$uploadinfo\n"'[img]'"$shareurl"'[/img]'"|$urlname"
 						fi
 					else
 						_notify "✅ Uploaded & URL copied" "$shareurl"
 					fi
 				else
 					if ! [[ $shareurl ]] ; then
+						echo "ERROR: upload failed ($uploadname)" >&2
 						errors=true
 						_beep &
 						_notify "❌ Upload failed!" "$uploadname"
@@ -698,27 +696,24 @@ if $webimg ; then
 							uploadinfo="$uploadinfo\nERROR|$urlname"
 						fi
 					elif [[ $shareurl == "canceled" ]] ; then
-						echo "User canceled"
+						echo "User canceled" >&2
 					else
-						echo "Unknown condition: $shareurl"
+						echo "Unknown condition: $shareurl" >&2
 					fi
 				fi
 				osascript -e 'tell application "qlmanage" to quit' &>/dev/null
 			fi
 		else
-			echo "Success: $shareurl"
-			if ! $bbcode ; then
-				echo -n "$shareurl" | pbcopy
-			else
-				echo -n "[img]$shareurl[/img]" | pbcopy
-			fi
+			echo "Success: $shareurl" >&2
+			$bbcode && shareurl='[img]'"$shareurl"'[/img]'
+			echo -n "$shareurl" | pbcopy
 			_success &
 			if $webmulti || $allmulti ; then
 				_notify "✅ Uploaded" "$shareurl"
 				if ! $bbcode ; then
 					uploadinfo="$uploadinfo\n$shareurl|$urlname"
 				else
-					uploadinfo="$uploadinfo\n[img]$shareurl[/img]|$urlname"
+					uploadinfo="$uploadinfo\n"'[img]'"$shareurl"'[/img]'"|$urlname"
 				fi
 			else
 				_notify "✅ Uploaded & URL copied" "$shareurl"
@@ -734,14 +729,14 @@ if $localimg ; then
 	while read -r uploadpath
 	do
 		pasted=false
-		echo "Accessing: $uploadpath"
+		echo "Accessing: $uploadpath" >&2
 		uploadname=$(basename "$uploadpath")
 		if [[ $uploadname == *"-pasteboard.tif" ]] ; then # convert TIF pasteboard exports to JPEG
-			echo "Converting to JPEG..."
+			echo "Converting to JPEG..." >&2
 			shortname="${uploadname%.*}"
 			if ! sips -s format jpeg "$uploadpath" --out "$tmpdir/$shortname.jpg" &>/dev/null ; then
 				errors=true
-				echo "ERROR: conversion failed"
+				echo "ERROR: conversion failed" >&2
 				_beep &
 				_notify "⚠️ Conversion error!" "Original saved to ~/Pictures/imgurAU"
 				mv "$uploadpath" "$savedir/$uploadname"
@@ -758,8 +753,8 @@ if $localimg ; then
 		# upload
 		shareurl=$(_upload "$uploadpath" 2>/dev/null)
 		if [[ $shareurl == "https://i.imgur.com/"* ]] ; then
-			echo "Success: $shareurl ($uploadname)"
-			$bbcode && shareurl="[img]$shareurl[/img]"
+			echo "Success: $shareurl ($uploadname)" >&2
+			$bbcode && shareurl='[img]'"$shareurl"'[/img]'
 			echo -n "$shareurl" | pbcopy
 			_success &
 			if $localmulti || $allmulti ; then
@@ -767,23 +762,23 @@ if $localimg ; then
 				if ! $bbcode ; then
 					uploadinfo="$uploadinfo\n$shareurl|$uploadname"
 				else
-					uploadinfo="$uploadinfo\n[img]$shareurl[/img]|$uploadname"
+					uploadinfo="$uploadinfo\n"'[img]'"$shareurl"'[/img]'"|$uploadname"
 				fi
 			else
 				_notify "✅ Uploaded & URL copied" "$shareurl"
 			fi
 			if [[ $(dirname "$uploadpath") == "$tmpdir" ]] ; then
-				echo "Removing temp "
+				echo "Removing temporary file" >&2
 				rm -f "$uploadpath" 2>/dev/null
 			fi
 			if $sg_def && [[ $(dirname "$uploadpath") == "$sg_loc" ]] ; then
-				echo "Asking user to move snapshot to trash"
+				echo "Asking user to move snapshot to trash" >&2
 				_trash "$uploadpath"
 			fi
 		else
 			$pasted && rm -f "$uploadpath"
 			if ! [[ $shareurl ]] ; then
-				echo "ERROR: upload failed ($uploadname)"
+				echo "ERROR: upload failed ($uploadname)" >&2
 				errors=true
 				_beep &
 				_notify "❌ Upload failed!" "$uploadname"
@@ -791,9 +786,9 @@ if $localimg ; then
 					uploadinfo="$uploadinfo\nERROR|$uploadname"
 				fi
 			elif [[ $shareurl == "canceled" ]] ; then
-				echo "User canceled"
+				echo "User canceled" >&2
 			else
-				echo "Unknown condition: $shareurl"
+				echo "Unknown condition: $shareurl" >&2
 			fi
 		fi
 		osascript -e 'tell application "qlmanage" to quit' &>/dev/null
@@ -806,7 +801,7 @@ if $webmulti || $localmulti || $allmulti ; then
 	fi
 	uploadinfo=$(echo -e "$uploadinfo" | grep -v "^$")
 	if [[ $uploadinfo ]] ; then
-		echo "Writing results to info file: $links_loc"
+		echo "Writing results to info file: $links_loc" >&2
 		echo "$uploadinfo" > "$links_loc"
 		sleep .5
 		open "$links_loc"
