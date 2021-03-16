@@ -2,7 +2,7 @@
 # shellcheck shell=bash
 
 # imgur-au.sh
-# v0.9.24 beta
+# v0.9.25 beta
 #
 # imgurAU
 # imgur Anonymous Uploader
@@ -169,7 +169,10 @@ end if
 EOF
 	)
 	if [[ $frontmost != "none" ]] ; then
-		echo -n "$frontmost"
+		frontname=$(basename "$frontmost")
+		if echo "$frontname" | grep -q -i -e "\.png$" -e "\.jpg$" -e "\.jpeg" -e "\.tif$" -e "\.tiff$" -e "\.gif$" -e "\.apng" -e "\.webm" -e "\.mp4" -e "\.m4v" -e "\.avi" &>/dev/null ; then
+			echo -n "$frontmost"
+		fi
 	fi
 }
 
@@ -249,7 +252,7 @@ gifmax=209715200
 othermax=20971520
 pngmax=5242880
 
-# prompt with image: ask user for upload without "select other" option
+# prompt with image: ask user for upload
 _ask-upload () {
 	askimgpath="$1"
 	askname=$(basename "$askimgpath")
