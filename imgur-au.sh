@@ -2,7 +2,7 @@
 # shellcheck shell=bash
 
 # imgur-au.sh
-# v0.9.18 beta
+# v0.9.19 beta
 #
 # imgurAU
 # imgur Anonymous Uploader
@@ -13,6 +13,7 @@
 #
 # requisites:
 # exiftool - https://exiftool.org (available via Homebrew)
+# file-icon - https://github.com/sindresorhus/file-icon-cli (install with npm/node; node available via Homebrew)
 # jq - https://stedolan.github.io/jq/ (available via Homebrew)
 # pbv - https://github.com/chbrown/macos-pasteboard (also available in the imgurAU repository)
 # trash - https://github.com/sindresorhus/macos-trash (available via Homebrew)
@@ -88,6 +89,7 @@ EOT
 
 read -d '' reqs <<"EOR"
 	exiftool
+	file-icon
 	jq
 	pbv
 	trash
@@ -381,10 +383,15 @@ _check-file () {
 
 _upload () {
 	fuploadpath="$1"
+	
 	converted=false
 	cleaned=false
 	
-	if $pasted || [[ $(dirname "$fuploadpath") != "$tmpdir"* ]] ; then
+	uask=false
+	[[ $(dirname "$fuploadpath") != "$tmpdir"* ]] && uask=true
+	$pasted && uask=true
+	
+	if $uask ; then
 		uchoice=$(_ask-upload "$fuploadpath" 2>/dev/null)
 		if ! [[ $uchoice ]] || [[ $uchoice == "false" ]] ; then
 			echo "User canceled" >&2
@@ -540,16 +547,24 @@ do
 	
 	# check for proper input
 	if [[ $input == "/"* ]] ; then
-		if ! echo "$inputname" | grep -q -i -e "\.png$" -e "\.jpg$" -e "\.jpeg" -e "\.tif$" -e "\.tiff$" -e "\.gif$" -e "\.apng" -e "\.webm" -e "\.mp4" -e "\.m4v" -e "\.avi" &>/dev/null ; then # not a proper file type
-			echo "ERROR: wrong file format"
-			_beep &
-			_notify "❌ Wrong file format!" "Not supported by imgur: $inputname"
-			continue
-		fi
-		if ! [[ -f "$input" ]] ; then
+		if ! [[ -e "$input" ]] ; then
 			echo "ERROR: file missing ($inputname)"
 			_beep &
 			_notify "❓ File missing" "$inputname"
+			continue
+		fi
+		if ! echo "$inputname" | grep -q -i -e "\.png$" -e "\.jpg$" -e "\.jpeg" -e "\.tif$" -e "\.tiff$" -e "\.gif$" -e "\.apng" -e "\.webm" -e "\.mp4" -e "\.m4v" -e "\.avi" &>/dev/null ; then # not a proper file type
+			posixdate=$(date +%s)
+			cfileicon="$tmpdir/$posixdate-$inputname-icon512.png"
+			if file-icon "$input" --size 512 > "$cfileicon" &>/dev/null ; then
+				allfiles="$allfiles\n$cfileicon"
+			else
+				echo "ERROR: wrong file format"
+				_beep &
+				_notify "❌ Wrong file format!" "Not supported by imgur: $inputname"
+				rm -f "$cfileicon" 2>/dev/null
+			fi
+			continue
 		else
 			allfiles="$allfiles\n$input"
 		fi
@@ -562,19 +577,26 @@ do
 			allurls="$allurls\n$input"
 		fi
 	else
-		if ! echo "$inputname" | grep -q -i -e "\.png$" -e "\.jpg$" -e "\.jpeg" -e "\.tif$" -e "\.tiff$" -e "\.gif$" -e "\.apng" -e "\.webm" -e "\.mp4" -e "\.m4v" -e "\.avi" &>/dev/null ; then # not a proper file type
-			echo "ERROR: wrong file format"
-			_beep &
-			_notify "❌ Wrong file format!" "Not supported by imgur: $inputname"
-			continue
-		fi
 		inputpath="$PWD/$input"
-		if [[ -f "$inputpath" ]] ; then
-			allfiles="$allfiles\n$inputpath"
-		else
+		if ! [[ -e "$inputpath" ]] ; then
 			echo "ERROR: file missing or false input ($inputname)"
 			_beep &
 			_notify "❓ File missing or false input" "$inputname"
+			continue
+		fi
+		if ! echo "$inputname" | grep -q -i -e "\.png$" -e "\.jpg$" -e "\.jpeg" -e "\.tif$" -e "\.tiff$" -e "\.gif$" -e "\.apng" -e "\.webm" -e "\.mp4" -e "\.m4v" -e "\.avi" &>/dev/null ; then # not a proper file type
+			posixdate=$(date +%s)
+			cfileicon="$tmpdir/$posixdate-$inputname-icon512.png"
+			if file-icon "$input" --size 512 > "$cfileicon" &>/dev/null ; then
+				allfiles="$allfiles\n$cfileicon"
+			else
+				echo "ERROR: wrong file format"
+				_beep &
+				_notify "❌ Wrong file format!" "Not supported by imgur: $inputname"
+				rm -f "$cfileicon" 2>/dev/null
+			fi
+		else
+			allfiles="$allfiles\n$inputpath"
 		fi
 	fi
 
@@ -697,6 +719,8 @@ if $localimg ; then
 				uploadname="$shortname.jpg"
 				uploadpath="$tmpdir/$uploadname"
 			fi
+		elif [[ $uploadname == *"-icon512.png" ]] ; then
+			pasted=true
 		fi
 		# upload
 		shareurl=$(_upload "$uploadpath" 2>/dev/null)

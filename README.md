@@ -12,10 +12,11 @@ But for years now, there has been a public imgur API for anonymous uploads with 
 
 The **imgurAU** shell script originally used the **imguru** command-line program for anonymous uploads, and its builds (including one for macOS Big Sur and later) are still included in this repository. But that program stopped working properly, too, so imgurAU is now only using that program's client ID for direct cURL uploads. However, it is recommended that you get your own imgur client ID, and add it to the imgurAU configuration file.
 
-The imgurAU script also uses extended macOS pasteboard functionality, available through the **pbv** program, to detect if an image has been copied into the macOS pasteboard. When using the software **EventScripts**, imgurAU can also be used to easily upload a new screenshot to imgur.
+The imgurAU script uses extended macOS pasteboard functionality, available through the **pbv** program, to detect if an image has been copied into the macOS pasteboard. When using the software **EventScripts**, imgurAU can be used to easily upload a new screenshot to imgur. Using the **file-icon** program, imgurAU can convert any file or folder icon to PNG and upload it to imgur.
 
 ## Requisites
 * **[`exiftool`](https://exiftool.org/)** (install e.g. with **[Homebrew](https://brew.sh/)**)
+* **[`file-icon-cli`](https://github.com/sindresorhus/file-icon-cli)** (install with `npm install -g file-icon-cli` after installing `node` with Homebrew)
 * **[`jq`](https://stedolan.github.io/jq/)** (install e.g. with Homebrew)
 * **[`pbv`](https://github.com/chbrown/macos-pasteboard)**
 * **[`trash`](https://github.com/sindresorhus/macos-trash)** (install e.g. with Homebrew)
@@ -26,7 +27,7 @@ Note: the requisite `pbv` can be downloaded from the respective `./bin` director
 * option #1: clone this repository and symlink `imgur-au.sh`, `imguru` (if you're not using an individual build) and `pbv` into one of your bin directories
 * option #2: download the repository and copy `imgur-au.sh`, `imguru` (if you're not using an individual build) and `pbv` into one of your bin directories
 * if necessary, set the executable bits with `chmod +x`
-* install the programs `exiftool` `jq` `trash`
+* install the programs `exiftool` `file-icon-cli` `jq` `trash`
 
 ## Setup options
 ### imgur client ID (optional, recommended)
@@ -56,6 +57,7 @@ Note: if you haven't installed **EventScripts**, or if the application is not ru
 ## Functionality
 * upload local image file(s)
 * auto-detect newly created screenshots & upload (option: delete after upload)
+* convert the icon of any file or folder to PNG (512 ppi) and upload to imgur
 * upload frontmost image of the frontmost application
 * upload image from pasteboard
 * upload web image in the web browser
