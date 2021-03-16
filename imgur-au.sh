@@ -2,7 +2,7 @@
 # shellcheck shell=bash
 
 # imgur-au.sh
-# v0.9.16 beta
+# v0.9.17 beta
 #
 # imgurAU
 # imgur Anonymous Uploader
@@ -12,13 +12,10 @@
 # Place of jurisdiction: Berlin / German laws apply
 #
 # requisites:
-# exiftool - https://exiftool.org
-# imguru - https://github.com/FigBug/imguru (also available in the imgurAU repository)
+# exiftool - https://exiftool.org (available via Homebrew)
+# jq - https://stedolan.github.io/jq/ (available via Homebrew)
 # pbv - https://github.com/chbrown/macos-pasteboard (also available in the imgurAU repository)
 # trash - https://github.com/sindresorhus/macos-trash (available via Homebrew)
-#
-# optional:
-# EventScripts - https://www.mousedown.net/software/EventScripts.html (available via the Mac App Store)
 #
 # imgur formats & maximum file sizes
 # https://help.imgur.com/hc/en-us/articles/115000083326-What-files-can-I-upload-What-is-the-size-limit-
@@ -91,7 +88,7 @@ EOT
 
 read -d '' reqs <<"EOR"
 	exiftool
-	imguru
+	jq
 	pbv
 	trash
 EOR
@@ -121,12 +118,12 @@ uldir="$tmpdir/ul"
 configdir="$HOME/.config/imgurAU"
 ! [[ -d "$configdir" ]] && mkdir "$configdir"
 
-# imgur client ID: fallback for cURL (imguru does not support web upload)
+# imgur client ID
 oauthloc="$configdir/imgur_client_id.txt"
 ! [[ -f "$oauthloc" ]] && touch "$oauthloc"
 client_id=$(head -1 < "$oauthloc" 2>/dev/null)
 if ! [[ $client_id ]] ; then
-	client_id="51f229880e3ea84" 
+	client_id="51f229880e3ea84" # imguru program ID (works better with cURL)
 	id_info="default"
 else
 	id_info="user"
@@ -274,7 +271,6 @@ tell application "System Events"
 end tell
 EOG
 		)
-		osascript -e 'tell application "qlmanage" to quit' &>/dev/null
 	fi
 	echo -n "$uploadchoice"
 }
@@ -421,13 +417,22 @@ _upload () {
 		fi
 	fi
 	
+	# imgur_url=$(imguru "$fuploadpath" 2>/dev/null | grep -v "^$")
 	# imgur_raw=$(curl -k -L -s --connect-timeout 10 -H "Authorization: Client-ID $client_id" -H "Expect: " -F "image=@$fuploadpath" "https://api.imgur.com/3/image.xml" 2>&1)
 	# imgur_url=$(echo "$imgur_raw" | tail -n +2 | awk -F"<link>" '{print $NF}' | awk -F"</link>" '{print $1}' 2>/dev/null)
-	imgur_url=$(imguru "$fuploadpath" 2>/dev/null | grep -v "^$")
-	if [[ $imgur_url == "https://i.imgur.com/"* ]] ; then
-		echo -n "$imgur_url"
+	imgbase=$(base64 -i "$fuploadpath" 2>/dev/null)
+	if [[ $imgbase ]] ; then
+		imgur_data=$(curl -k -L -s --connect-timeout 10 --request POST "https://api.imgur.com/3/image" -H "Authorization: Client-ID $client_id" -H "Expect: " -F "image=$imgbase" 2>/dev/null)
+		if [[ $imgur_data ]] ; then
+			imgur_url=$(echo "$imgur_data" | jq -r '.data.link')
+			if [[ $imgur_url == "https://i.imgur.com/"* ]] ; then
+				echo -n "$imgur_url"
+			fi
+		fi
 	fi
 
+	osascript -e 'tell application "qlmanage" to quit' &>/dev/null
+	
 	$converted && rm -f "$imgcheck" 2>/dev/null
 	$cleaned && rm -f "$exifpath" 2>/dev/null
 }
@@ -607,11 +612,11 @@ if $webimg ; then
 			_notify "❌ Wrong file format!" "Not supported by imgur: $inputname"
 			continue
 		fi
-		# imguru doesn't support URL input: upload to imgur directly with cURL and OAuth key
+		# upload to imgur directly with cURL (only client ID needed for anonymous upload)
 		echo "Uploading to imgur directly..."
-		imgur_raw=$(curl -k -L -s --connect-timeout 10 -H "Authorization: Client-ID $client_id" -H "Expect: " -F "image=$url" "https://api.imgur.com/3/image.xml" 2>/dev/null)
-		shareurl=$(echo "$imgur_raw" | tail -n +2 | awk -F"<link>" '{print $NF}' | awk -F"</link>" '{print $1}' 2>/dev/null)
-		if [[ $shareurl != "https://i.imgur.com/"* ]] ; then # cURL error: download first, then upload with imguru
+		imgur_data=$(curl -k -L -s --connect-timeout 10 --request POST "https://api.imgur.com/3/image" -H "Authorization: Client-ID $client_id" -H "Expect: " -F "image=$url" 2>/dev/null)
+		shareurl=$(echo "$imgur_data" | jq -r '.data.link')
+		if [[ $shareurl != "https://i.imgur.com/"* ]] ; then # cURL error: download first, then again with cURL
 			echo "ERROR: direct upload with cURL"
 			uploadname="$posixdate-$urlname"
 			uploadpath="$tmpdir/$uploadname"
