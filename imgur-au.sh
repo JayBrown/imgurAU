@@ -2,7 +2,7 @@
 # shellcheck shell=bash
 
 # imgur-au.sh
-# v0.9.22 beta
+# v0.9.23 beta
 #
 # imgurAU
 # imgur Anonymous Uploader
@@ -69,7 +69,7 @@ if ! [[ $sg_loc ]] ; then
 	echo "WARNING: no screenshot directory defined"
 	sg_def=false
 else
-	sg_loc=$(echo "$sg_loc" | sed "s-/*$--")
+	sg_loc=$(echo "$sg_loc" | sed 's-/*$--')
 	echo "Screenshot location: $sg_loc"
 	if $snapshots ; then
 		shift $#
