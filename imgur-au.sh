@@ -2,7 +2,7 @@
 # shellcheck shell=bash
 
 # imgur-au.sh
-# v0.9.20 beta
+# v0.9.22 beta
 #
 # imgurAU
 # imgur Anonymous Uploader
@@ -41,8 +41,8 @@ else
 fi
 exec > >(tee -a "$logloc") 2>&1
 
-snapshots=false
 # check for macOS app Snap Shot
+snapshots=false
 if pgrep -x "screencaptureui" &>/dev/null ; then
 	echo "macOS Snap Shot is running"
 	snapshots=true
@@ -53,6 +53,14 @@ if pgrep -x "screencaptureui" &>/dev/null ; then
 	fi
 fi
 
+# check for BBCode formatting arguments
+bbcode=false
+if [[ $1 =~ ^(-b|--bbcode)$ ]] ; then
+	shift
+	bbcode=true
+	echo "BBCode formatting enabled"
+fi
+
 # read screenshot location
 sg_def=true
 sg_loc=$(/usr/libexec/PlistBuddy -c "Print:location" "$HOME/Library/Preferences/com.apple.screencapture.plist" 2>/dev/null)
@@ -61,6 +69,7 @@ if ! [[ $sg_loc ]] ; then
 	echo "WARNING: no screenshot directory defined"
 	sg_def=false
 else
+	sg_loc=$(echo "$sg_loc" | sed "s-/*$--")
 	echo "Screenshot location: $sg_loc"
 	if $snapshots ; then
 		shift $#
@@ -488,12 +497,16 @@ if ! [[ $* ]] ; then
 			shareurl=$(_upload "$uploadpath" 2>/dev/null)
 			if [[ $shareurl == "https://i.imgur.com/"* ]] ; then
 				echo "Success: $shareurl ($uploadname)"
-				uploadinfo="$uploadinfo\n$shareurl:$uploadname"
+				if ! $bbcode ; then
+					uploadinfo="$uploadinfo\n$shareurl|$uploadname"
+				else
+					uploadinfo="$uploadinfo\n[img]$shareurl[/img]|$uploadname"
+				fi
 				_notify "✅ Upload successful" "$shareurl ($uploadname)"
 			else
 				if ! [[ $shareurl ]] ; then
 					echo "ERROR: upload: $uploadname"
-					uploadinfo="$uploadinfo\nERROR:$uploadname"
+					uploadinfo="$uploadinfo\nERROR|$uploadname"
 					_notify "❌ Upload failed!" "$uploadname"
 					errors=true
 				elif [[ $shareurl == "canceled" ]] ; then
@@ -509,6 +522,7 @@ if ! [[ $* ]] ; then
 		else
 			_success &
 		fi
+		echo "Writing results to info file: $links_loc"
 		echo -e "$uploadinfo" | grep -v "^$" > "$links_loc"
 		sleep .5
 		open "$links_loc"
@@ -651,16 +665,24 @@ if $webimg ; then
 				_notify "⚠️ cURL: cache error!" "$urlname"
 				rm -f "$uploadpath" 2>/dev/null
 				if $webmulti || $allmulti ; then
-					uploadinfo="$uploadinfo\nERROR:$urlname"
+					uploadinfo="$uploadinfo\nERROR|$urlname"
 				fi
 			else # upload from cache
 				shareurl=$(_upload "$uploadpath" 2>/dev/null)
 				if [[ $shareurl == "https://i.imgur.com/"* ]] ; then
-					echo -n "$shareurl" | pbcopy
+					if ! $bbcode ; then
+						echo -n "$shareurl" | pbcopy
+					else
+						echo -n "[img]$shareurl[/img]" | pbcopy
+					fi
 					_success &
 					if $webmulti || $allmulti ; then
 						_notify "✅ Uploaded" "$shareurl"
-						uploadinfo="$uploadinfo\n$shareurl:$urlname"
+						if ! $bbcode ; then
+							uploadinfo="$uploadinfo\n$shareurl|$urlname"
+						else
+							uploadinfo="$uploadinfo\n[img]$shareurl[/img]|$urlname"
+						fi
 					else
 						_notify "✅ Uploaded & URL copied" "$shareurl"
 					fi
@@ -670,7 +692,7 @@ if $webimg ; then
 						_beep &
 						_notify "❌ Upload failed!" "$uploadname"
 						if $webmulti || $allmulti ; then
-							uploadinfo="$uploadinfo\nERROR:$urlname"
+							uploadinfo="$uploadinfo\nERROR|$urlname"
 						fi
 					elif [[ $shareurl == "canceled" ]] ; then
 						echo "User canceled"
@@ -682,11 +704,19 @@ if $webimg ; then
 			fi
 		else
 			echo "Success: $shareurl"
-			echo -n "$shareurl" | pbcopy
+			if ! $bbcode ; then
+				echo -n "$shareurl" | pbcopy
+			else
+				echo -n "[img]$shareurl[/img]" | pbcopy
+			fi
 			_success &
 			if $webmulti || $allmulti ; then
 				_notify "✅ Uploaded" "$shareurl"
-				uploadinfo="$uploadinfo\n$shareurl:$urlname"
+				if ! $bbcode ; then
+					uploadinfo="$uploadinfo\n$shareurl|$urlname"
+				else
+					uploadinfo="$uploadinfo\n[img]$shareurl[/img]|$urlname"
+				fi
 			else
 				_notify "✅ Uploaded & URL copied" "$shareurl"
 			fi
@@ -726,11 +756,16 @@ if $localimg ; then
 		shareurl=$(_upload "$uploadpath" 2>/dev/null)
 		if [[ $shareurl == "https://i.imgur.com/"* ]] ; then
 			echo "Success: $shareurl ($uploadname)"
+			$bbcode && shareurl="[img]$shareurl[/img]"
 			echo -n "$shareurl" | pbcopy
 			_success &
 			if $localmulti || $allmulti ; then
 				_notify "✅ Uploaded" "$shareurl"
-				uploadinfo="$uploadinfo\n$shareurl:$uploadname"
+				if ! $bbcode ; then
+					uploadinfo="$uploadinfo\n$shareurl|$uploadname"
+				else
+					uploadinfo="$uploadinfo\n[img]$shareurl[/img]|$uploadname"
+				fi
 			else
 				_notify "✅ Uploaded & URL copied" "$shareurl"
 			fi
@@ -750,7 +785,7 @@ if $localimg ; then
 				_beep &
 				_notify "❌ Upload failed!" "$uploadname"
 				if $localmulti || $allmulti ; then
-					uploadinfo="$uploadinfo\nERROR:$uploadname"
+					uploadinfo="$uploadinfo\nERROR|$uploadname"
 				fi
 			elif [[ $shareurl == "canceled" ]] ; then
 				echo "User canceled"
