@@ -2,7 +2,7 @@
 # shellcheck shell=bash
 
 # imgur-au.sh
-# v0.9.17 beta
+# v0.9.18 beta
 #
 # imgurAU
 # imgur Anonymous Uploader
@@ -430,8 +430,6 @@ _upload () {
 			fi
 		fi
 	fi
-
-	osascript -e 'tell application "qlmanage" to quit' &>/dev/null
 	
 	$converted && rm -f "$imgcheck" 2>/dev/null
 	$cleaned && rm -f "$exifpath" 2>/dev/null
@@ -497,6 +495,7 @@ if ! [[ $* ]] ; then
 					echo "Unknown condition: $shareurl"
 				fi
 			fi
+			osascript -e 'tell application "qlmanage" to quit' &>/dev/null
 		done < <(echo "$uploadpaths")
 		if $errors ; then
 			_beep &
@@ -657,6 +656,7 @@ if $webimg ; then
 						echo "Unknown condition: $shareurl"
 					fi
 				fi
+				osascript -e 'tell application "qlmanage" to quit' &>/dev/null
 			fi
 		else
 			echo "Success: $shareurl"
@@ -734,6 +734,7 @@ if $localimg ; then
 				echo "Unknown condition: $shareurl"
 			fi
 		fi
+		osascript -e 'tell application "qlmanage" to quit' &>/dev/null
 	done < <(echo "$allfiles")
 fi
 
@@ -749,5 +750,7 @@ if $webmulti || $localmulti || $allmulti ; then
 		open "$links_loc"
 	fi
 fi
+
+osascript -e 'tell application "qlmanage" to quit' &>/dev/null
 
 exit
