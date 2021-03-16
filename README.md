@@ -74,6 +74,9 @@ Note: imgurAU doesn't come with a sharing extension, which would let you upload 
 * execute imgurAU without input while the relevant image file is opened as the frontmost document of the frontmost image viewer or editor
 * select the relevant image in the image viewer or editor and copy it (CMD-C) to your macOS pasteboard, then execute imgurAU without input
 
+### Arguments
+* `-b|--bbcode` - put the imgur URL in `[img][/img]` BBCode tags
+
 ## Uninstall imgurAU
 * repository clone
 * all instances of `imgur-au.sh`
