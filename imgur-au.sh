@@ -2,7 +2,7 @@
 # shellcheck shell=bash
 
 # imgur-au.sh
-# v0.9.26 beta
+# v0.9.27 beta
 #
 # imgurAU
 # imgur Anonymous Uploader
@@ -437,15 +437,21 @@ _upload () {
 	fi
 	
 	# imgur_url=$(imguru "$fuploadpath" 2>/dev/null | grep -v "^$")
-	# imgur_raw=$(curl -k -L -s --connect-timeout 10 -H "Authorization: Client-ID $client_id" -H "Expect: " -F "image=@$fuploadpath" "https://api.imgur.com/3/image.xml" 2>&1)
-	# imgur_url=$(echo "$imgur_raw" | tail -n +2 | awk -F"<link>" '{print $NF}' | awk -F"</link>" '{print $1}' 2>/dev/null)
-	imgbase=$(base64 -i "$fuploadpath" 2>/dev/null)
-	if [[ $imgbase ]] ; then
-		imgur_data=$(curl -k -L -s --connect-timeout 10 --request POST "https://api.imgur.com/3/image" -H "Authorization: Client-ID $client_id" -H "Expect: " -F "image=$imgbase" 2>/dev/null)
-		if [[ $imgur_data ]] ; then
-			imgur_url=$(echo "$imgur_data" | jq -r '.data.link')
-			if [[ $imgur_url == "https://i.imgur.com/"* ]] ; then
-				echo -n "$imgur_url" #
+	imgur_raw=$(curl -k -L -s --connect-timeout 10 -H "Authorization: Client-ID $client_id" -H "Expect: " -F "image=@$fuploadpath" "https://api.imgur.com/3/image.xml" 2>/dev/null)
+	imgur_url=$(echo "$imgur_raw" | tail -n +2 | awk -F"<link>" '{print $NF}' | awk -F"</link>" '{print $1}' 2>/dev/null)
+	if [[ $imgur_url == "https://i.imgur.com/"* ]] ; then
+		echo -n "$imgur_url" #
+	else
+		fuploadname=$(basename "$fuploadpath")
+		_notify "⚠️ Error: image file upload" "Trying base64 upload: $fuploadname"
+		imgbase=$(base64 -i "$fuploadpath" 2>/dev/null)
+		if [[ $imgbase ]] ; then
+			imgur_data=$(curl -k -L -s --connect-timeout 10 --request POST "https://api.imgur.com/3/image" -H "Authorization: Client-ID $client_id" -H "Expect: " -F "image=$imgbase" 2>/dev/null)
+			if [[ $imgur_data ]] ; then
+				imgur_url=$(echo "$imgur_data" | jq -r '.data.link')
+				if [[ $imgur_url == "https://i.imgur.com/"* ]] ; then
+					echo -n "$imgur_url" #
+				fi
 			fi
 		fi
 	fi
