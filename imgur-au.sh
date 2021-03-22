@@ -2,7 +2,7 @@
 # shellcheck shell=bash
 
 # imgur-au.sh
-# v0.9.27 beta
+# v0.10.1 beta
 #
 # imgurAU
 # imgur Anonymous Uploader
@@ -170,7 +170,7 @@ EOF
 	)
 	if [[ $frontmost != "none" ]] ; then
 		frontname=$(basename "$frontmost")
-		if echo "$frontname" | grep -q -i -e "\.png$" -e "\.jpg$" -e "\.jpeg" -e "\.tif$" -e "\.tiff$" -e "\.gif$" -e "\.apng" -e "\.webm" -e "\.mp4" -e "\.m4v" -e "\.avi" &>/dev/null ; then
+		if echo "$frontname" | grep -q -i -e "\.png$" -e "\.jpg$" -e "\.jpeg$" -e "\.tif$" -e "\.tiff$" -e "\.gif$" -e "\.webp$" -e "\.apng$" -e "\.webm$" -e "\.mp4$" -e "\.m4v$" -e "\.avi$" &>/dev/null ; then
 			echo -n "$frontmost" #
 		fi
 	fi
@@ -180,7 +180,7 @@ EOF
 if [[ $* ]] ; then # input arguments
 	echo "Input (raw): $*" >&2
 	if [[ $1 == "internal-snapshot" ]] ; then
-		img_newest=$(find "$sg_loc" -mindepth 1 -maxdepth 1 -type f \( -name '*.jpg' -o -name '*.png' -o -name '*.jpeg' -o -name '*.tif' -o -name '*.tiff' -o -name '*.apng' -o -name '*.gif' \) -print0 2>/dev/null | xargs -r -0 ls -1 -t | head -1 | grep -v "^$")
+		img_newest=$(find "$sg_loc" -mindepth 1 -maxdepth 1 -type f \( -name '*.jpg$' -o -name '*.png$' -o -name '*.jpeg$' -o -name '*.tif$' -o -name '*.tiff$' -o -name '*.gif$' \) -print0 2>/dev/null | xargs -r -0 ls -1 -t | head -1 | grep -v "^$")
 		if [[ $img_newest ]] ; then # screenshot file found
 			shift $#
 			set -- "$@" "$img_newest"
@@ -319,7 +319,7 @@ tell application "System Events"
 	set theDefaultPath to "$selectpath" as string
 	set theUploadImages to choose file with prompt ¬
 		"Please select one or more image files for upload to imgur…" ¬
-		of type {"png", "jpg", "jpeg", "gif", "tif", "tiff", "apng", "webm", "mp4", "m4v", "avi"} ¬
+		of type {"png", "jpg", "jpeg", "gif", "tif", "tiff", "webp", "apng", "webm", "mp4", "m4v", "avi"} ¬
 		with multiple selections allowed ¬
 		default location theDefaultPath
 	repeat with anUploadImage in theUploadImages
@@ -337,7 +337,7 @@ tell application "System Events"
 	activate
 	set theDefaultPath to "$selectpath" as string
 	set theUploadImage to POSIX path of (choose file with prompt "Please select an image file for upload to imgur…" ¬
-		of type {"png", "jpg", "jpeg", "gif", "tif", "tiff", "apng", "webm", "mp4", "m4v", "avi"} ¬
+		of type {"png", "jpg", "jpeg", "gif", "tif", "tiff", "webp", "apng", "webm", "mp4", "m4v", "avi"} ¬
 		default location theDefaultPath)
 end tell
 theUploadImage
@@ -351,6 +351,26 @@ EOS
 _check-file () {
 	checkpath="$1"
 	checkname=$(basename "$checkpath")
+	suffix="${checkname##*.}"
+	# echo "Extension: $suffix" >&2
+	webpconv=false
+	if [[ $suffix =~ ^(webp|WEBP)$ ]] ; then
+		# echo "Converting unsupported format to JPEG..." >&2
+		shortcheckname="${checkname%.*}"
+		tempcheckname="$posixdate-$shortcheckname.jpg"
+		if sips -s format jpeg "$checkpath" --out "$tmpdir/$tempcheckname" &>/dev/null ; then
+			checkpath="$tmpdir/$tempcheckname"
+			checkname="$tempcheckname"
+			webpconv=true
+		else
+			_beep &
+			_notify "⚠️ Error: conversion failed!" "$checkname"
+			rm -f "$tmpdir/$tempcheckname" 2>/dev/null
+			# echo "ERROR: conversion failed" >&2
+			echo -n "error" #
+			return
+		fi
+	fi
 	fsize=$(stat -f%z "$checkpath" 2>/dev/null) # general file size check
 	# echo "File size: $fsize" >&2
 	if ! [[ $fsize ]] || [[ $fsize -eq 0 ]] ; then
@@ -360,10 +380,8 @@ _check-file () {
 		echo -n "error" #
 		return
 	fi
-	suffix="${checkname##*.}"
-	# echo "Extension: $suffix" >&2
-	abort=false
 	# check file sizes relative to formats for imgur support
+	abort=false
 	if [[ $suffix =~ ^(gif|GIF)$ ]] ; then
 		[[ $fsize -gt "$gifmax" ]] && abort=true
 	else
@@ -391,6 +409,9 @@ _check-file () {
 			echo -n "error" #
 		fi
 	fi
+	if $webpconv ; then
+		echo -n "$checkpath" #
+	fi
 }
 
 _upload () {
@@ -400,7 +421,7 @@ _upload () {
 	cleaned=false
 	
 	uask=false
-	[[ $(dirname "$fuploadpath") != "$tmpdir"* ]] && uask=true
+	[[ $fuploadpath != "$tmpdir/"* ]] && uask=true
 	$pasted && uask=true
 	
 	if $uask ; then
@@ -411,7 +432,6 @@ _upload () {
 			return
 		fi
 	fi
-	
 	imgcheck=$(_check-file "$fuploadpath" 2>/dev/null)
 	[[ $imgcheck == "error" ]] && return
 	if [[ $imgcheck == "$tmpdir/"* ]] ; then
@@ -567,6 +587,7 @@ do
 	! [[ $input ]] && continue
 	
 	inputname=$(basename "$input")
+	posixdate=$(date +%s)
 	
 	# check for proper input
 	if [[ $input == "/"* ]] ; then
@@ -576,8 +597,7 @@ do
 			_notify "❓ File missing" "$inputname"
 			continue
 		fi
-		if ! echo "$inputname" | grep -q -i -e "\.png$" -e "\.jpg$" -e "\.jpeg" -e "\.tif$" -e "\.tiff$" -e "\.gif$" -e "\.apng" -e "\.webm" -e "\.mp4" -e "\.m4v" -e "\.avi" &>/dev/null ; then # not a proper file type
-			posixdate=$(date +%s)
+		if ! echo "$inputname" | grep -q -i -e "\.png$" -e "\.jpg$" -e "\.jpeg$" -e "\.tif$" -e "\.tiff$" -e "\.gif$" -e "\.webp$" -e "\.apng$" -e "\.webm$" -e "\.mp4$" -e "\.m4v$" -e "\.avi$" &>/dev/null ; then # not a proper file type
 			cfileicon="$tmpdir/$posixdate-$inputname-icon256.png"
 			if file-icon "$input" --size 256 > "$cfileicon" &>/dev/null ; then
 				allfiles="$allfiles\n$cfileicon"
@@ -607,8 +627,7 @@ do
 			_notify "❓ File missing or false input" "$inputname"
 			continue
 		fi
-		if ! echo "$inputname" | grep -q -i -e "\.png$" -e "\.jpg$" -e "\.jpeg" -e "\.tif$" -e "\.tiff$" -e "\.gif$" -e "\.apng" -e "\.webm" -e "\.mp4" -e "\.m4v" -e "\.avi" &>/dev/null ; then # not a proper file type
-			posixdate=$(date +%s)
+		if ! echo "$inputname" | grep -q -i -e "\.png$" -e "\.jpg$" -e "\.jpeg$" -e "\.tif$" -e "\.tiff$" -e "\.gif$" -e "\.webp$" -e "\.apng$" -e "\.webm$" -e "\.mp4$" -e "\.m4v$" -e "\.avi$" &>/dev/null ; then # not a proper file type
 			cfileicon="$tmpdir/$posixdate-$inputname-icon256.png"
 			if file-icon "$input" --size 256 > "$cfileicon" &>/dev/null ; then
 				allfiles="$allfiles\n$cfileicon"
@@ -647,21 +666,29 @@ if $webimg ; then
 		echo "URL (raw): $url_raw" >&2
 		urlparent=$(dirname "$url_raw")
 		urlname=$(basename "$url_raw")
-		urlname=$(echo "$urlname" | sed -e 's/\.png\?.*$/\.png/' -e 's/\.jpg\?.*$/\.jpg/' -e 's/\.jpeg\?.*$/\.jpeg/' -e 's/\.apng\?.*$/\.apng/' -e 's/\.gif\?.*$/\.gif/' -e 's/\.tif\?.*$/\.tif/' -e 's/\.tiff\?.*$/\.tiff/' -e 's/\.webm\?.*$/\.webm/' -e 's/\.m4v\?.*$/\.m4v/' -e 's/\.mp4\?.*$/\.mp4/' -e 's/\.avi\?.*$/\.avi/')
+		urlname=$(echo "$urlname" | sed -e 's/\.png\?.*$/\.png/' -e 's/\.jpg\?.*$/\.jpg/' -e 's/\.jpeg\?.*$/\.jpeg/' -e 's/\.apng\?.*$/\.apng/' -e 's/\.gif\?.*$/\.gif/' -e 's/\.tif\?.*$/\.tif/' -e 's/\.tiff\?.*$/\.tiff/' -e 's/\.webp\?.*$/\.webp/' -e 's/\.webm\?.*$/\.webm/' -e 's/\.m4v\?.*$/\.m4v/' -e 's/\.mp4\?.*$/\.mp4/' -e 's/\.avi\?.*$/\.avi/')
 		url="$urlparent/$urlname"
 		echo "URL: $url" >&2
-		if ! echo "$urlname" | grep -q -i -e "\.png$" -e "\.jpg$" -e "\.jpeg" -e "\.tif$" -e "\.tiff$" -e "\.gif$" -e "\.apng" -e "\.webm" -e "\.mp4" -e "\.m4v" -e "\.avi" &>/dev/null ; then # not a proper file type
+		if ! echo "$urlname" | grep -q -i -e "\.png$" -e "\.jpg$" -e "\.jpeg$" -e "\.tif$" -e "\.tiff$" -e "\.gif$" -e "\.webp$" -e "\.apng$" -e "\.webm$" -e "\.mp4$" -e "\.m4v$" -e "\.avi$" &>/dev/null ; then # not a proper file type
 			echo "ERROR: wrong file format" >&2
 			_beep &
 			_notify "❌ Wrong file format!" "Not supported by imgur: $inputname"
 			continue
 		fi
 		# upload to imgur directly with cURL (only client ID needed for anonymous upload)
-		echo "Uploading to imgur directly..." >&2
-		imgur_data=$(curl -k -L -s --connect-timeout 10 --request POST "https://api.imgur.com/3/image" -H "Authorization: Client-ID $client_id" -H "Expect: " -F "image=$url" 2>/dev/null)
-		shareurl=$(echo "$imgur_data" | jq -r '.data.link')
+		webpimg=false
+		pasted=false
+		if ! echo "$urlname" | grep -q -i "\.webp$" &>/dev/null ; then
+			echo "Uploading to imgur directly..." >&2
+			imgur_data=$(curl -k -L -s --connect-timeout 10 --request POST "https://api.imgur.com/3/image" -H "Authorization: Client-ID $client_id" -H "Expect: " -F "image=$url" 2>/dev/null)
+			shareurl=$(echo "$imgur_data" | jq -r '.data.link')
+		else
+			webpimg=true
+			echo "Downloading webp image for conversion..." >&2
+			shareurl=""
+		fi
 		if [[ $shareurl != "https://i.imgur.com/"* ]] ; then # cURL error: download first, then again with cURL
-			echo "ERROR: direct upload with cURL" >&2
+			! $webpimg && echo "ERROR: direct upload with cURL" >&2
 			uploadname="$posixdate-$urlname"
 			uploadpath="$tmpdir/$uploadname"
 			rm -f "$uploadpath" 2>/dev/null
@@ -692,6 +719,7 @@ if $webimg ; then
 					else
 						_notify "✅ Uploaded & URL copied" "$shareurl"
 					fi
+					rm -f "$uploadpath" 2>/dev/null
 				else
 					if ! [[ $shareurl ]] ; then
 						echo "ERROR: upload failed ($uploadname)" >&2
@@ -701,10 +729,13 @@ if $webimg ; then
 						if $webmulti || $allmulti ; then
 							uploadinfo="$uploadinfo\nERROR|$urlname"
 						fi
+						mv "$uploadpath" "$savedir/$uploadname" 2>/dev/null
 					elif [[ $shareurl == "canceled" ]] ; then
 						echo "User canceled" >&2
+						rm -f "$uploadpath" 2>/dev/null
 					else
 						echo "Unknown condition: $shareurl" >&2
+						mv "$uploadpath" "$savedir/$uploadname" 2>/dev/null
 					fi
 				fi
 				osascript -e 'tell application "qlmanage" to quit' &>/dev/null
