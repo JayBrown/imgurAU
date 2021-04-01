@@ -2,7 +2,7 @@
 # shellcheck shell=bash
 
 # imgur-au.sh
-# v0.11.0 beta
+# v0.11.1 beta
 #
 # imgurAU
 # imgur Anonymous Uploader
@@ -14,6 +14,7 @@
 # requisites:
 # exiftool - https://exiftool.org (available via Homebrew)
 # file-icon - https://github.com/sindresorhus/file-icon-cli (install with npm/node; node available via Homebrew)
+# imagemagick - https://www.imagemagick.org/ (available via Homebrew)
 # jq - https://stedolan.github.io/jq/ (available via Homebrew)
 # pbv - https://github.com/chbrown/macos-pasteboard (also available in the imgurAU repository)
 # trash - https://github.com/sindresorhus/macos-trash (available via Homebrew)
@@ -99,6 +100,7 @@ EOT
 read -d '' reqs <<"EOR"
 	exiftool
 	file-icon
+	identify
 	jq
 	pbv
 	trash
@@ -355,24 +357,48 @@ _check-file () {
 	# echo "Extension: $suffix" >&2
 	webpconv=false
 	jpegconv=false
+	if [[ $(identify -format '%[channels]' "$checkpath" 2>/dev/null) == "srgba" ]] ; then
+		hasalpha=true
+	fi
 	if [[ $suffix =~ ^(webp|WEBP)$ ]] ; then
-		# echo "Converting unsupported format to JPEG..." >&2
-		shortcheckname="${checkname%.*}"
-		tempcheckname="$posixdate-$shortcheckname.jpg"
-		if sips -s format jpeg "$checkpath" --out "$tmpdir/$tempcheckname" &>/dev/null ; then
-			checkpath="$tmpdir/$tempcheckname"
-			checkname="$tempcheckname"
-			suffix="jpg"
-			webpconv=true
+		if ! $hasalpha ; then
+			# echo "Converting unsupported format to JPEG..." >&2
+			shortcheckname="${checkname%.*}"
+			tempcheckname="$posixdate-$shortcheckname.jpg"
+			if sips -s format jpeg "$checkpath" --out "$tmpdir/$tempcheckname" &>/dev/null ; then
+				checkpath="$tmpdir/$tempcheckname"
+				checkname="$tempcheckname"
+				suffix="jpg"
+				webpconv=true
+			else
+				_beep &
+				_notify "⚠️ Error: conversion failed!" "$checkname"
+				rm -f "$tmpdir/$tempcheckname" 2>/dev/null
+				# echo "ERROR: conversion failed" >&2
+				echo -n "error" #
+				return
+			fi
 		else
-			_beep &
-			_notify "⚠️ Error: conversion failed!" "$checkname"
-			rm -f "$tmpdir/$tempcheckname" 2>/dev/null
-			# echo "ERROR: conversion failed" >&2
-			echo -n "error" #
-			return
+			# echo "Converting unsupported format to PNG..." >&2
+			shortcheckname="${checkname%.*}"
+			tempcheckname="$posixdate-$shortcheckname.png"
+			if sips -s format png "$checkpath" --out "$tmpdir/$tempcheckname" &>/dev/null ; then
+				checkpath="$tmpdir/$tempcheckname"
+				checkname="$tempcheckname"
+				suffix="png"
+				webpconv=true
+			else
+				_beep &
+				_notify "⚠️ Error: conversion failed!" "$checkname"
+				rm -f "$tmpdir/$tempcheckname" 2>/dev/null
+				# echo "ERROR: conversion failed" >&2
+				echo -n "error" #
+				return
+			fi
 		fi
-	else # convert to JPEG (except for GIF): simply too buggy with other formats, especially PNG (also better for size check)
+	fi
+	# if no transparency, convert to JPEG (except for GIF): other formats can be buggy
+	if ! $hasalpha ; then
 		if ! [[ $suffix =~ ^(jpg|JPG|jpeg|JPEG|gif|GIF)$ ]] ; then
 			# echo "Converting to JPEG for best compatibility..." >&2
 			shortcheckname="${checkname%.*}"
@@ -694,6 +720,7 @@ if $webimg ; then
 		# upload to imgur directly with cURL (only client ID needed for anonymous upload)
 		webpimg=false
 		pasted=false
+		hasalpha=false
 		if ! echo "$urlname" | grep -q -i "\.webp$" &>/dev/null ; then
 			echo "Uploading to imgur directly..." >&2
 			imgur_data=$(curl -k -L -s --connect-timeout 10 --request POST "https://api.imgur.com/3/image" -H "Authorization: Client-ID $client_id" -H "Expect: " -F "image=$url" 2>/dev/null)
@@ -782,23 +809,45 @@ if $localimg ; then
 	while read -r uploadpath
 	do
 		pasted=false
+		hasalpha=false
 		echo "Accessing: $uploadpath" >&2
 		uploadname=$(basename "$uploadpath")
-		if [[ $uploadname == *"-pasteboard.tif" ]] ; then # convert TIF pasteboard exports to JPEG
-			echo "Converting to JPEG..." >&2
-			shortname="${uploadname%.*}"
-			if ! sips -s format jpeg "$uploadpath" --out "$tmpdir/$shortname.jpg" &>/dev/null ; then
-				errors=true
-				echo "ERROR: conversion failed" >&2
-				_beep &
-				_notify "⚠️ Conversion error!" "Original saved to ~/Pictures/imgurAU"
-				mv "$uploadpath" "$savedir/$uploadname"
-				continue
+		if [[ $uploadname == *"-pasteboard.tif" ]] ; then # convert TIF pasteboard exports to JPEG or PNG (if transparency)
+			if [[ $(identify -format '%[channels]' "$uploadpath" 2>/dev/null ) == "srgba" ]] ; then
+				echo "Converting to PNG..." >&2
+				hasalpha=true
 			else
-				pasted=true
-				rm -f "$uploadpath" 2>/dev/null
-				uploadname="$shortname.jpg"
-				uploadpath="$tmpdir/$uploadname"
+				echo "Converting to JPEG..." >&2
+			fi
+			shortname="${uploadname%.*}"
+			if ! $hasalpha ; then
+				if ! sips -s format jpeg "$uploadpath" --out "$tmpdir/$shortname.jpg" &>/dev/null ; then
+					errors=true
+					echo "ERROR: conversion failed" >&2
+					_beep &
+					_notify "⚠️ Conversion error!" "Original saved to ~/Pictures/imgurAU"
+					mv "$uploadpath" "$savedir/$uploadname"
+					continue
+				else
+					pasted=true
+					rm -f "$uploadpath" 2>/dev/null
+					uploadname="$shortname.jpg"
+					uploadpath="$tmpdir/$uploadname"
+				fi
+			else
+				if ! sips -s format png "$uploadpath" --out "$tmpdir/$shortname.png" &>/dev/null ; then
+					errors=true
+					echo "ERROR: conversion failed" >&2
+					_beep &
+					_notify "⚠️ Conversion error!" "Original saved to ~/Pictures/imgurAU"
+					mv "$uploadpath" "$savedir/$uploadname"
+					continue
+				else
+					pasted=true
+					rm -f "$uploadpath" 2>/dev/null
+					uploadname="$shortname.png"
+					uploadpath="$tmpdir/$uploadname"
+				fi
 			fi
 		elif [[ $uploadname == *"-icon256.png" ]] ; then
 			pasted=true
