@@ -16,9 +16,9 @@ The imgurAU script uses extended macOS pasteboard functionality, available throu
 
 ## Requisites
 * **[`exiftool`](https://exiftool.org/)** (install e.g. with **[Homebrew](https://brew.sh/)**)
-* **[`file-icon-cli`](https://github.com/sindresorhus/file-icon-cli)** (install with `npm install -g file-icon-cli` after installing `node` with Homebrew)
-* **`identify`** as part of **[imagemagick](https://www.imagemagick.org/)** (install e.g. with Homebrew)
+* **[`file-icon`](https://github.com/sindresorhus/file-icon-cli)** (install with `npm install -g file-icon-cli` after installing `node` with Homebrew)
 * **[`jq`](https://stedolan.github.io/jq/)** (install e.g. with Homebrew)
+* **[`magick`](https://www.imagemagick.org/)** (install e.g. with Homebrew)
 * **[`pbv`](https://github.com/chbrown/macos-pasteboard)**
 * **[`trash`](https://github.com/sindresorhus/macos-trash)** (install e.g. with Homebrew)
 

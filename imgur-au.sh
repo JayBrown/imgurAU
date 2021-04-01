@@ -2,7 +2,7 @@
 # shellcheck shell=bash
 
 # imgur-au.sh
-# v0.11.1 beta
+# v0.11.2 beta
 #
 # imgurAU
 # imgur Anonymous Uploader
@@ -100,8 +100,8 @@ EOT
 read -d '' reqs <<"EOR"
 	exiftool
 	file-icon
-	identify
 	jq
+	magick
 	pbv
 	trash
 EOR
@@ -357,7 +357,7 @@ _check-file () {
 	# echo "Extension: $suffix" >&2
 	webpconv=false
 	jpegconv=false
-	if [[ $(identify -format '%[channels]' "$checkpath" 2>/dev/null) == "srgba" ]] ; then
+	if [[ $(magick identify -format '%[channels]' "$checkpath" 2>/dev/null) == "srgba" ]] ; then
 		hasalpha=true
 	fi
 	if [[ $suffix =~ ^(webp|WEBP)$ ]] ; then
@@ -813,7 +813,7 @@ if $localimg ; then
 		echo "Accessing: $uploadpath" >&2
 		uploadname=$(basename "$uploadpath")
 		if [[ $uploadname == *"-pasteboard.tif" ]] ; then # convert TIF pasteboard exports to JPEG or PNG (if transparency)
-			if [[ $(identify -format '%[channels]' "$uploadpath" 2>/dev/null ) == "srgba" ]] ; then
+			if [[ $(magick identify -format '%[channels]' "$uploadpath" 2>/dev/null ) == "srgba" ]] ; then
 				echo "Converting to PNG..." >&2
 				hasalpha=true
 			else
