@@ -2,7 +2,7 @@
 # shellcheck shell=bash
 
 # imgur-au.sh
-# v0.10.1 beta
+# v0.11.0 beta
 #
 # imgurAU
 # imgur Anonymous Uploader
@@ -354,6 +354,7 @@ _check-file () {
 	suffix="${checkname##*.}"
 	# echo "Extension: $suffix" >&2
 	webpconv=false
+	jpegconv=false
 	if [[ $suffix =~ ^(webp|WEBP)$ ]] ; then
 		# echo "Converting unsupported format to JPEG..." >&2
 		shortcheckname="${checkname%.*}"
@@ -361,6 +362,7 @@ _check-file () {
 		if sips -s format jpeg "$checkpath" --out "$tmpdir/$tempcheckname" &>/dev/null ; then
 			checkpath="$tmpdir/$tempcheckname"
 			checkname="$tempcheckname"
+			suffix="jpg"
 			webpconv=true
 		else
 			_beep &
@@ -369,6 +371,20 @@ _check-file () {
 			# echo "ERROR: conversion failed" >&2
 			echo -n "error" #
 			return
+		fi
+	else # convert to JPEG (except for GIF): simply too buggy with other formats, especially PNG (also better for size check)
+		if ! [[ $suffix =~ ^(jpg|JPG|jpeg|JPEG|gif|GIF)$ ]] ; then
+			# echo "Converting to JPEG for best compatibility..." >&2
+			shortcheckname="${checkname%.*}"
+			tempcheckname="$posixdate-$shortcheckname.jpg"
+			if sips -s format jpeg "$checkpath" --out "$tmpdir/$tempcheckname" &>/dev/null ; then
+				checkpath="$tmpdir/$tempcheckname"
+				checkname="$tempcheckname"
+				suffix="jpg"
+				jpegconv=true
+			# else
+			# echo "Conversion failed: trying original format..." >&2
+			fi # do not exit on error: try uploading with the original format first
 		fi
 	fi
 	fsize=$(stat -f%z "$checkpath" 2>/dev/null) # general file size check
@@ -409,7 +425,7 @@ _check-file () {
 			echo -n "error" #
 		fi
 	fi
-	if $webpconv ; then
+	if $jpegconv || $webpconv ; then
 		echo -n "$checkpath" #
 	fi
 }

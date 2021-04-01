@@ -67,6 +67,8 @@ Note: if you haven't installed **EventScripts**, or if the application is not ru
 
 Note: to prevent accidental uploads, imgurAU will always ask before uploading local files; since AppleScript can display images only at icon size, you have the option to inspect the image further before upload, and imgurAU will then open the file in a macOS **QuickLook** floating window.
 
+Note: imgurAU will convert all images except GIFs to the JPEG format before upload; imgur tends to be buggy when uploading other formats like PNG.
+
 Note: after a successful upload, imgurAU will return the direct sharing URL of the image and copy it to the macOS pasteboard. If several images are uploaded at once, imgurAU will also create a dated plaintext file in `~/Pictures/imgurAU` containing the filenames and the imgur URLs.
 
 Note: imgurAU doesn't come with a sharing extension, which would let you upload directly from an image editing software via the "Share" menu, but you have two alternative solutions:
